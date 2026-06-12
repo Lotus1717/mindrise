@@ -42,7 +42,7 @@ export const HUG_MESSAGES = [
   '有些情绪不需要被解决，只需要被允许存在。',
 ]
 
-export const emotionTags = ['压力', '焦虑', '平静', '疲惫', '感恩', '孤独', '欣喜', '迷茫']
+export const emotionTags = ['工作', '睡眠', '家庭', '感情', '健康', '独处', '社交', '未来']
 
 export const SHARE_MESSAGES = [
   '我在「念起」完成了一次情绪觉察，你呢？',

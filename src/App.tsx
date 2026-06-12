@@ -59,7 +59,6 @@ const SOCRATIC: Record<string,string[]> = {
 }
 const GUIDANCE = ['慢慢来，我在这里。','你的感受很重要，试着描述它。','呼吸，感受这个时刻。','对自己温柔一点。','这个感受，没有对错。']
 const MAX_MSGS = 50
-const AWARENESS_VALS = [78,85,72,91,68,83,76,89,94,81]
 const MOOD_EMOJI = ['', '😣', '😔', '😐', '🙂', '💛']
 const MOOD_LABELS = ['', '低落', '不好', '还好', '不错', '超棒']
 
@@ -300,6 +299,9 @@ export default function App() {
   const [onboardIdx, setOnboardIdx] = useState(0)
   const [userName, setUserName] = useState(()=>localStorage.getItem('mindrise-name')||'朋友')
   const [expandedJournal, setExpandedJournal] = useState<string | null>(null)
+  const [chatHistory, setChatHistory] = useState<Record<number, {role:'ai'|'user';text:string}[]>>(()=>{
+    try { return JSON.parse(localStorage.getItem('mindrise-chat')||'{}') } catch { return {} }
+  })
   const [journal, setJournal] = useState<JournalItem[]>(()=>{
     try { return JSON.parse(localStorage.getItem('mindrise-journal')||'[]') } catch { return [] }
   })
@@ -316,6 +318,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('mindrise-dark', darkMode?'1':'0') }, [darkMode])
   useEffect(() => { localStorage.setItem('mindrise-name', userName) }, [userName])
   useEffect(() => { localStorage.setItem('mindrise-journal', JSON.stringify(journal)) }, [journal])
+  useEffect(() => { localStorage.setItem('mindrise-chat', JSON.stringify(chatHistory)) }, [chatHistory])
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -331,10 +334,11 @@ export default function App() {
   const startChat = useCallback(() => {
     const card = CARDS[cardIdx]
     const reps = SOCRATIC[card.word] || GUIDANCE
-    setMsgs([{ role:'ai', text: reps[0] }])
+    const existing = chatHistory[cardIdx]
+    setMsgs(existing && existing.length > 0 ? existing : [{ role:'ai', text: reps[0] }])
     setOtterMood(OTTER_CURIOUS)
     setShowTip(false)
-  }, [cardIdx])
+  }, [cardIdx, chatHistory])
 
   const handleSend = useCallback(() => {
     if (!input.trim()) return
@@ -344,17 +348,28 @@ export default function App() {
       if (next.length > MAX_MSGS) return next.slice(Math.floor(MAX_MSGS/3))
       return next
     })
+    setChatHistory(h => {
+      const cur = h[cardIdx] || []
+      const next = [...cur, { role:'user' as const, text }].slice(-MAX_MSGS)
+      return { ...h, [cardIdx]: next }
+    })
     setInput(''); setTyping(true); setShowTip(false)
     if (sendTimerRef.current) clearTimeout(sendTimerRef.current)
     sendTimerRef.current = setTimeout(() => {
       setTyping(false)
       const card = CARDS[cardIdx]
       const reps = SOCRATIC[card.word] || GUIDANCE
+      const reply = reps[Math.floor(Math.random()*reps.length)]
       setMsgs(prev => {
-        const next: {role:'ai'|'user';text:string}[] = [...prev, { role:'ai' as const, text: reps[Math.floor(Math.random()*reps.length)] }]
+        const next: {role:'ai'|'user';text:string}[] = [...prev, { role:'ai' as const, text: reply }]
         if (next.length > MAX_MSGS) return next.slice(Math.floor(MAX_MSGS/3))
         return next
       })
+      setChatHistory(h => {
+      const cur = h[cardIdx] || []
+      const next = [...cur, { role:'ai' as const, text: reply }].slice(-MAX_MSGS)
+      return { ...h, [cardIdx]: next }
+    })
       setOtterMood(Math.random()>0.4 ? OTTER_CURIOUS : OTTER_DEFAULT)
     }, 1500 + Math.random()*400)
   }, [input, cardIdx])
@@ -367,12 +382,24 @@ export default function App() {
 
   const enterChat = useCallback(() => { setPage('chat'); startChat() }, [startChat])
 
-  const awarenessValue = useMemo(() => AWARENESS_VALS[cardIdx % AWARENESS_VALS.length], [cardIdx])
-
   const card = CARDS[cardIdx]
-  const weekData = [{l:'一',v:3},{l:'二',v:4},{l:'三',v:2},{l:'四',v:5},{l:'五',v:3},{l:'六',v:4},{l:'日',v:3}]
-  const maxV = Math.max(...weekData.map(d=>d.v))
-  const colorKeys = ['焦虑','疲惫','愤怒','平静','欣喜','孤独','感恩','迷茫','期待','释然']
+  const weekData = useMemo(() => {
+    const days = ['日','一','二','三','四','五','六']
+    const now = new Date()
+    const result: {l:string,v:number,isToday:boolean}[] = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - i)
+      d.setHours(0,0,0,0)
+      const start = d.getTime()
+      const end = start + 86400000
+      const dayItems = journal.filter(j => j.ts >= start && j.ts < end)
+      const avg = dayItems.length ? dayItems.reduce((s,j) => s + (j.rating||0), 0) / dayItems.length : 0
+      result.push({ l: days[d.getDay()], v: avg, isToday: i === 0 })
+    }
+    return result
+  }, [journal])
+  const maxV = 5
 
   if (page === 'splash') {
     return (
@@ -433,7 +460,6 @@ export default function App() {
                 <div style={{position:'relative',width:'100%',height:215,borderRadius:16,overflow:'hidden',marginBottom:20}}>
                   <img src={card.cardImg} alt={card.word} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{(e.currentTarget as HTMLImageElement).style.display='none'}} loading="lazy" />
                   <div style={{position:'absolute',inset:0,background:`linear-gradient(160deg,${CARD_COLORS[card.word]}cc,${CARD_COLORS[card.word]}99)`,display:'flex',alignItems:'center',justifyContent:'center'}}><div className="card-art-orb"/></div>
-                  <div style={{position:'absolute',bottom:12,left:12,background:'rgba(255,255,255,0.7)',borderRadius:12,padding:'6px 14px',fontSize:12,color:'var(--text-dark)',backdropFilter:'blur(8px)'}}>觉察值 {awarenessValue}%</div>
                 </div>
                 <div className="card-emotion-word" style={{letterSpacing:6}}>{card.word}</div>
                 <div className="card-guide">{card.guide}</div>
@@ -497,11 +523,12 @@ export default function App() {
               <div className="week-chart-title">近7天情绪趋势</div>
               <div style={{display:'flex',alignItems:'flex-end',gap:8,height:64,paddingTop:4}}>
                 {weekData.map((d,i)=>{
-                  const barH = Math.max(4, Math.round((d.v/maxV)*54))
+                  const hasData = d.v > 0
+                  const barH = hasData ? Math.max(4, Math.round((d.v/maxV)*54)) : 4
                   return (
                   <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
-                    <div style={{width:'100%',borderRadius:6,height:barH+'px',background:'linear-gradient(180deg,'+CARD_COLORS[colorKeys[i%10]]+'cc,'+CARD_COLORS[colorKeys[i%10]]+'40)',transition:'height 0.5s ease'}}/>
-                    <div className="chart-label">{d.l}</div>
+                    <div title={hasData ? `平均 ${d.v.toFixed(1)} 星` : '无记录'} style={{width:'100%',borderRadius:6,height:barH+'px',background: hasData ? 'linear-gradient(180deg,#F5A87F,#F5A87F40)' : 'rgba(0,0,0,0.06)',transition:'height 0.5s ease',boxShadow: d.isToday && hasData ? '0 0 0 2px rgba(245,168,127,0.4)' : 'none'}}/>
+                    <div className="chart-label" style={{fontWeight: d.isToday ? 700 : 400,color: d.isToday ? 'var(--text-dark)' : 'var(--text-muted)'}}>{d.l}</div>
                   </div>
                 )})}
               </div>
@@ -533,7 +560,7 @@ export default function App() {
                       <div style={{marginTop:10,paddingTop:10,borderTop:'1px dashed rgba(0,0,0,0.08)'}}>
                         {item.tags.length>0 && (
                           <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:10}}>
-                            {item.tags.map(t=><span key={t} style={{fontSize:11,padding:'3px 10px',borderRadius:20,background:`${CARD_COLORS[item.emotion]}18`,color:CARD_COLORS[item.emotion]}}>{t}</span>)}
+                            {item.tags.map(t=><span key={t} style={{fontSize:11,padding:'3px 10px',borderRadius:20,background:'rgba(0,0,0,0.05)',color:'var(--text-muted)'}}>{t}</span>)}
                           </div>
                         )}
                         {item.cardImg && (
