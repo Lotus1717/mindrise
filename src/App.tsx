@@ -85,7 +85,7 @@ function RecordModal({ card, onClose, onSave }: { card: typeof CARDS[0]; onClose
     setSaved(true)
     const id = setTimeout(onClose, 1800)
     return () => clearTimeout(id)
-  }, [rating, selTags, summary, card, onSave, onClose])
+  }, [rating, selTags, summary, defaultSummary, card, onSave, onClose])
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()}>
@@ -169,14 +169,17 @@ function ShareModal({ card, onClose }: { card: typeof CARDS[0]; onClose: () => v
   const handle = useCallback(async () => {
     const c = ref.current
     if (!c) return
+    const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void>; canShare?: (data: ShareData) => boolean }
     try {
       const blob: Blob | null = await new Promise(r => c.toBlob(r, 'image/png'))
-      if (blob && (navigator as any).share && (navigator as any).canShare?.({ files: [new File([blob], 'share.png', { type: 'image/png' })] })) {
+      if (blob && nav.share && nav.canShare?.({ files: [new File([blob], 'share.png', { type: 'image/png' })] })) {
         const file = new File([blob], `念起觉察_${card.word}.png`, { type: 'image/png' })
-        await (navigator as any).share({ title: `念起觉察 · ${card.word}`, files: [file] })
+        await nav.share({ title: `念起觉察 · ${card.word}`, files: [file] })
         return
       }
-    } catch {}
+    } catch {
+      // Share API not available or user cancelled — fall through to download
+    }
     const a = document.createElement('a')
     a.download = `念起觉察_${card.word}.png`; a.href = c.toDataURL('image/png'); a.click()
   }, [card])
