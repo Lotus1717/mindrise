@@ -2,11 +2,23 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import './index.css'
 import { CARDS, HUG_MESSAGES, emotionTags } from './data'
 import {
-  Home, BookOpen, User, Star, Share2, Moon, Sun,
-  Calendar, Sparkles, Heart, FileText, Phone, ArrowLeft,
+  Home, BookOpen, User, Share2, Moon, Sun,
+  Calendar, Sparkles, Heart, Info, ArrowLeft,
 } from 'lucide-react'
 
 type Page = 'splash' | 'home' | 'chat' | 'journal' | 'profile' | 'onboard'
+
+type JournalItem = {
+  id: string
+  date: string
+  day: string
+  emotion: string
+  rating: number
+  tags: string[]
+  summary: string
+  cardImg: string
+  ts: number
+}
 
 const OTTER_DEFAULT = '/otter-frames/otter-happy.png'
 const OTTER_CURIOUS = '/otter-frames/otter-curious.png'
@@ -49,19 +61,31 @@ const GUIDANCE = ['慢慢来，我在这里。','你的感受很重要，试着�
 const MAX_MSGS = 50
 const AWARENESS_VALS = [78,85,72,91,68,83,76,89,94,81]
 
-function RecordModal({ card, onClose }: { card: typeof CARDS[0]; onClose: () => void }) {
+function RecordModal({ card, onClose, onSave }: { card: typeof CARDS[0]; onClose: () => void; onSave: (item: JournalItem) => void }) {
   const [rating, setRating] = useState(0)
-  const [tags, setTags] = useState<string[]>([])
+  const [selTags, setSelTags] = useState<string[]>([])
   const [summary, setSummary] = useState('')
   const [saved, setSaved] = useState(false)
   const [editing, setEditing] = useState(false)
   const defaultSummary = `今天，我在「念起」与念念一起完成了一次情绪觉察。我感受到的是「${card.word}」——${card.guide} 这个时刻，值得被记住。`
   const handleSave = useCallback(() => {
-    if (!rating) return
+    const now = new Date()
+    const item: JournalItem = {
+      id: String(Date.now()),
+      date: `${now.getMonth()+1}月${now.getDate()}日`,
+      day: ['周日','周一','周二','周三','周四','周五','周六'][now.getDay()],
+      emotion: card.word,
+      rating,
+      tags: selTags,
+      summary: summary || defaultSummary,
+      cardImg: card.cardImg,
+      ts: now.getTime(),
+    }
+    onSave(item)
     setSaved(true)
-    const id = setTimeout(onClose, 2200)
+    const id = setTimeout(onClose, 1800)
     return () => clearTimeout(id)
-  }, [rating, onClose])
+  }, [rating, selTags, summary, card, onSave, onClose])
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()}>
@@ -87,8 +111,8 @@ function RecordModal({ card, onClose }: { card: typeof CARDS[0]; onClose: () => 
             <div style={{ fontSize:13,color:'var(--text-muted)',marginBottom:8 }}>今天的心情：</div>
             <div className="rating-row">{[1,2,3,4,5].map(n=><button key={n} className={`rating-btn ${rating>=n?'selected':''}`} onClick={()=>setRating(n)}>★</button>)}</div>
             <div style={{ fontSize:13,color:'var(--text-muted)',marginBottom:8 }}>情绪标签：</div>
-            <div className="record-tags">{emotionTags.map(t=><div key={t} className={`tag-chip ${tags.includes(t)?'selected':''}`} onClick={()=>setTags(p=>p.includes(t)?p.filter(x=>x!==t):[...p,t])}>{t}</div>)}</div>
-            <button className="btn-save" onClick={handleSave} disabled={!rating} style={{ opacity:rating?1:0.5 }}>保存到日记</button>
+            <div className="record-tags">{emotionTags.map(t=><div key={t} className={`tag-chip ${selTags.includes(t)?'selected':''}`} onClick={()=>setSelTags(p=>p.includes(t)?p.filter(x=>x!==t):[...p,t])}>{t}</div>)}</div>
+            <button className="btn-save" onClick={handleSave} style={{ opacity:1 }}>保存到日记</button>
             <button className="btn-share" onClick={onClose}>取消</button>
           </>
         ) : (
@@ -142,9 +166,17 @@ function ShareModal({ card, onClose }: { card: typeof CARDS[0]; onClose: () => v
       }
     }
   }, [card])
-  const handle = useCallback(() => {
+  const handle = useCallback(async () => {
     const c = ref.current
     if (!c) return
+    try {
+      const blob: Blob | null = await new Promise(r => c.toBlob(r, 'image/png'))
+      if (blob && (navigator as any).share && (navigator as any).canShare?.({ files: [new File([blob], 'share.png', { type: 'image/png' })] })) {
+        const file = new File([blob], `念起觉察_${card.word}.png`, { type: 'image/png' })
+        await (navigator as any).share({ title: `念起觉察 · ${card.word}`, files: [file] })
+        return
+      }
+    } catch {}
     const a = document.createElement('a')
     a.download = `念起觉察_${card.word}.png`; a.href = c.toDataURL('image/png'); a.click()
   }, [card])
@@ -188,15 +220,21 @@ export default function App() {
   const [typing, setTyping] = useState(false)
   const [showRecord, setShowRecord] = useState(false)
   const [showShare, setShowShare] = useState(false)
+  const [showAbout, setShowAbout] = useState(false)
   const [showHug, setShowHug] = useState(false)
+  const [showEditName, setShowEditName] = useState(false)
   const [hugIdx, setHugIdx] = useState(()=>Math.floor(Math.random()*HUG_MESSAGES.length))
   const [changing, setChanging] = useState(false)
   const [splashFrame, setSplashFrame] = useState(0)
   const [showTip, setShowTip] = useState(false)
   const [tipIdx, setTipIdx] = useState(0)
   const [otterMood, setOtterMood] = useState(OTTER_DEFAULT)
-  const [darkMode, setDarkMode] = useState(false)
+  const [darkMode, setDarkMode] = useState(()=>localStorage.getItem('mindrise-dark')==='1')
   const [onboardIdx, setOnboardIdx] = useState(0)
+  const [userName, setUserName] = useState(()=>localStorage.getItem('mindrise-name')||'朋友')
+  const [journal, setJournal] = useState<JournalItem[]>(()=>{
+    try { return JSON.parse(localStorage.getItem('mindrise-journal')||'[]') } catch { return [] }
+  })
   const endRef = useRef<HTMLDivElement>(null)
   const tipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -206,6 +244,10 @@ export default function App() {
     const t = setInterval(() => setSplashFrame(f => (f+1)%SPLASH_FRAMES.length), 1800)
     return () => clearInterval(t)
   }, [page])
+
+  useEffect(() => { localStorage.setItem('mindrise-dark', darkMode?'1':'0') }, [darkMode])
+  useEffect(() => { localStorage.setItem('mindrise-name', userName) }, [userName])
+  useEffect(() => { localStorage.setItem('mindrise-journal', JSON.stringify(journal)) }, [journal])
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -292,7 +334,7 @@ export default function App() {
         </div>
         <div className="onboard-actions">
           {onboardIdx < ONBOARD_STEPS.length-1 ? (
-            <><button className="btn-ghost" style={{flex:1}} onClick={()=>setPage('home')}>跳过</button>
+            <><button className="btn-ghost" style={{flex:1}} onClick={()=>{ localStorage.setItem('nianqi-onboarded','1'); setPage('home') }}>跳过</button>
                <button className="btn-primary" style={{flex:2}} onClick={()=>setOnboardIdx(i=>i+1)}>继续</button></>
           ) : (
             <button className="btn-primary" style={{flex:1}} onClick={()=>{ localStorage.setItem('nianqi-onboarded','1'); setPage('home') }}>开始使用</button>
@@ -317,7 +359,7 @@ export default function App() {
             <div className="status-icon" onClick={()=>setPage('journal')}><Calendar size={16} strokeWidth={2}/></div>
           </div>
           <div className="home-page">
-            <div className="home-greeting">下午好，朋友</div>
+            <div className="home-greeting">下午好，{userName}</div>
             <div className={`card-container ${changing?'card-out':'card-in'}`}>
               <div className="emotion-card" onClick={enterChat} style={{cursor:'pointer'}}>
                 <div style={{position:'relative',width:'100%',height:215,borderRadius:16,overflow:'hidden',marginBottom:20}}>
@@ -399,7 +441,11 @@ export default function App() {
             </div>
           </div>
           <div className="journal-list">
-            {[{id:1,date:'6月10日',day:'周二',emotion:'焦虑',rating:3,preview:'胸口有点闷，深呼吸之后稍微缓解了一些。下午开完会感觉整个人都被掏空了，需要早点休息。'},{id:2,date:'6月9日',day:'周一',emotion:'平静',rating:4,preview:'今天睡了个好觉，醒来觉得世界都亮了一些。下午独自去公园散步，发现自己很久没有这样慢下来了。'},{id:3,date:'6月7日',day:'周六',emotion:'欣喜',rating:5,preview:'收到了好朋友的礼物，是一本想了很久的书。这个世界上还有人会记得你喜欢什么，真的很温暖。'},{id:4,date:'6月5日',day:'周四',emotion:'疲惫',rating:2,preview:'连轴转了三天，感觉身体在抗议。下周要给自己放一天假，什么都不做，只是休息。'}].map(item=>(
+            {journal.length === 0 ? (
+              <div style={{textAlign:'center',padding:'40px 20px',color:'var(--text-muted)',fontSize:13,lineHeight:1.8}}>
+                还没有日记。<br/>点首页卡牌 → 探索内心 → 生成今日觉察
+              </div>
+            ) : journal.map(item=>(
               <div key={item.id} className="journal-item">
                 <div style={{display:'flex',gap:12,alignItems:'stretch'}}>
                   <div style={{width:5,borderRadius:3,flexShrink:0,background:CARD_COLORS[item.emotion]}}/>
@@ -409,9 +455,9 @@ export default function App() {
                         <span style={{fontSize:12,fontWeight:600,color:'var(--text-dark)'}}>{item.date} {item.day}</span>
                         <span style={{fontSize:12,padding:'2px 10px',borderRadius:20,background:`${CARD_COLORS[item.emotion]}25`,color:CARD_COLORS[item.emotion],fontWeight:600}}>{EMOTION_LETTERS[item.emotion]} {item.emotion}</span>
                       </div>
-                      <span style={{fontSize:12,color:'var(--accent-warm)',letterSpacing:1}}>{'★'.repeat(item.rating)}{'☆'.repeat(5-item.rating)}</span>
+                      <span style={{fontSize:12,color:item.rating?'var(--accent-warm)':'var(--text-muted)',letterSpacing:1}}>{item.rating ? '★'.repeat(item.rating)+'☆'.repeat(5-item.rating) : '未评分'}</span>
                     </div>
-                    <div style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{item.preview}</div>
+                    <div style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{item.summary}</div>
                   </div>
                 </div>
               </div>
@@ -432,21 +478,19 @@ export default function App() {
               <img src={OTTER_GLOW} alt="念念" style={{width:72,height:72,borderRadius:'50%',objectFit:'cover',boxShadow:'0 0 30px rgba(255,229,180,0.6)'}}/>
               <div style={{position:'absolute',bottom:-2,right:-2,width:26,height:26,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent-warm),var(--accent-green))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#fff',fontWeight:700}}>念</div>
             </div>
-            <div className="profile-name">朋友</div>
-            <div className="profile-edit">编辑昵称 ›</div>
+            <div className="profile-name">{userName}</div>
+            <div className="profile-edit" onClick={()=>setShowEditName(true)} style={{cursor:'pointer'}}>编辑昵称 ›</div>
           </div>
           <button className="profile-hug-btn" onClick={()=>setShowHug(true)}>🤗 抱抱念念</button>
           <div className="profile-list">
             {([
-              { Icon:Star, label:'我的收藏' },
               { Icon:Share2, label:'分享App', onShare:true },
               { Icon:Moon, label:'深色模式', onDark:true },
-              { Icon:FileText, label:'免责声明与隐私政策' },
-              { Icon:Phone, label:'联系客服' },
-            ] as {Icon:React.FC<{size?:number;strokeWidth?:number}>;label:string;onShare?:boolean;onDark?:boolean}[]).map((item,i)=>(
+              { Icon:Info, label:'关于念起', onAbout:true },
+            ] as {Icon:React.FC<{size?:number;strokeWidth?:number}>;label:string;onShare?:boolean;onDark?:boolean;onAbout?:boolean}[]).map((item,i)=>(
               <div key={i} className="profile-list-item"
-                onClick={()=>{ if (item.onShare) setShowShare(true); if (item.onDark) setDarkMode(d=>!d) }}
-                style={{cursor:item.onShare||item.onDark?'pointer':'default'}}>
+                onClick={()=>{ if (item.onShare) setShowShare(true); if (item.onDark) setDarkMode(d=>!d); if (item.onAbout) setShowAbout(true) }}
+                style={{cursor:item.onShare||item.onDark||item.onAbout?'pointer':'default'}}>
                 <div className="list-icon"><item.Icon size={18} strokeWidth={2}/></div>
                 <div className="list-label">{item.label}</div>
                 <div className="list-arrow">›</div>
@@ -475,7 +519,45 @@ export default function App() {
         </div>
       )}
 
-      {showRecord&&<RecordModal card={card} onClose={()=>setShowRecord(false)}/>}
+      {showAbout&&(
+        <div className="modal-overlay" onClick={()=>setShowAbout(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{textAlign:'center',padding:'28px 24px'}}>
+            <div style={{display:'flex',justifyContent:'center',marginBottom:16}}>
+              <img src={OTTER_GLOW} alt="念起" style={{width:80,height:80,borderRadius:'50%',objectFit:'cover',boxShadow:'0 0 30px rgba(255,229,180,0.6)'}}/>
+            </div>
+            <div style={{fontSize:22,fontWeight:700,color:'var(--text-dark)',marginBottom:4}}>念起</div>
+            <div style={{fontSize:12,color:'var(--text-muted)',letterSpacing:2,marginBottom:18}}>MINDRISE · v1.0</div>
+            <div style={{fontSize:14,color:'var(--text-dark)',lineHeight:1.9,textAlign:'left',background:'rgba(0,0,0,0.02)',borderRadius:14,padding:'14px 16px',marginBottom:18}}>
+              一只叫念念的小水獭，陪你看见情绪的形状。<br/>
+              我们相信，每一次觉察，都是一次温柔的自我靠近。<br/><br/>
+              <span style={{color:'var(--text-muted)',fontSize:12}}>「念起」不替代专业心理咨询。如有严重困扰，请寻求专业帮助。</span>
+            </div>
+            <button className="btn-save" style={{width:'100%'}} onClick={()=>setShowAbout(false)}>知道了</button>
+          </div>
+        </div>
+      )}
+
+      {showEditName&&(
+        <div className="modal-overlay" onClick={()=>setShowEditName(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{padding:'24px'}}>
+            <div className="modal-title">编辑昵称</div>
+            <input
+              defaultValue={userName}
+              maxLength={12}
+              autoFocus
+              onKeyDown={e=>{ if (e.key==='Enter') { const v=(e.currentTarget.value||'').trim(); if (v) setUserName(v); setShowEditName(false) } }}
+              id="edit-name-input"
+              style={{width:'100%',padding:'12px 14px',borderRadius:12,border:'1.5px solid #E8B4A2',fontSize:15,outline:'none',background:'var(--card-bg)',color:'var(--text-dark)',marginBottom:16,boxSizing:'border-box'}}
+            />
+            <div style={{display:'flex',gap:10}}>
+              <button className="btn-ghost" style={{flex:1}} onClick={()=>setShowEditName(false)}>取消</button>
+              <button className="btn-save" style={{flex:2}} onClick={()=>{ const v=((document.getElementById('edit-name-input') as HTMLInputElement)?.value||'').trim(); if (v) setUserName(v); setShowEditName(false) }}>保存</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRecord&&<RecordModal card={card} onClose={()=>setShowRecord(false)} onSave={(item)=>setJournal(j=>[item, ...j])}/>}
       {showShare&&<ShareModal card={card} onClose={()=>setShowShare(false)}/>}
     </div>
   )
