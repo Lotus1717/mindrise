@@ -11,7 +11,8 @@
     "cap:sync": "npm run build && npx cap sync",
     "cap:open:ios": "npx cap open ios",
     "cap:open:android": "npx cap open android",
-    "optimize:images": "node scripts/optimize-images.mjs"
+    "optimize:images": "node scripts/optimize-images.mjs",
+    "deploy:fn": "tcb fn deploy nianqi-chat"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",
@@ -19,6 +20,7 @@
     "@capacitor/core": "^8.4.0",
     "@capacitor/ios": "^8.4.0",
     "@capacitor/preferences": "^8.0.1",
+    "@cloudbase/js-sdk": "^2.28.8",
     "@tailwindcss/vite": "^4.3.0",
     "lucide-react": "^1.17.0",
     "react": "^19.2.6",

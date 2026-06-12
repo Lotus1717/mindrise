@@ -1,0 +1,18 @@
+{
+  "envId": "tanmycloud-d4gp7dm0l1aeb4fb2",
+  "functionRoot": "./cloudfunctions",
+  "functions": [
+    {
+      "name": "nianqi-chat",
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "timeout": 60,
+      "memorySize": 256,
+      "installDependency": false,
+      "envVariables": {
+        "AI_BASE_URL": "https://tanmycloud-d4gp7dm0l1aeb4fb2.api.tcloudbasegateway.com/v1/ai/cloudbase",
+        "AI_MODEL": "hy3-preview"
+      }
+    }
+  ]
+}
