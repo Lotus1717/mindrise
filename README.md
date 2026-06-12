@@ -30,6 +30,7 @@
 | 图标 | Lucide React（统一线稿 SVG） |
 | 动效 | CSS Keyframes + Canvas API |
 | 状态管理 | React useState / useRef / useCallback / useMemo |
+| 跨端打包 | Capacitor 8（iOS + Android） |
 | 部署 | Vite 静态打包 →托管平台 |
 
 ---
@@ -37,29 +38,34 @@
 ## 目录结构
 
 ```
-nianqi-mvp/
+mindrise/
 ├── public/
-│   ├── cards/          # 10 张情绪卡 AI 插画
-│   │   ├── card-anxiety.png
-│   │   ├── card-calm.png
-│   │   ├── card-exhaustion.png
-│   │   ├── card-joy.png
-│   │   ├── card-loneliness.png
-│   │   ├── card-anger.png
-│   │   ├── card-gratitude.png
-│   │   ├── card-confusion.png
-│   │   ├── card-anticipation.png
-│   │   └── card-relief.png
-│   └── otter-frames/   # 念念品牌素材
-│       ├── otter-happy.png
-│       ├── otter-curious.png
-│       ├── otter-glow.png
-│       ├── splash-1~4.png   # 启动页动画帧
-│       └── onboard-1~3.png # 引导页插画
+│   ├── cards/              # 10 张情绪卡 AI 插画
+│   │   ├── card-anxiety.png ~ card-relief.png
+│   ├── logo/               # App 图标源文件
+│   │   ├── logo-48.png
+│   │   ├── logo-180.png
+│   │   └── logo-512.png
+│   ├── otter-frames/       # 念念品牌素材
+│   │   ├── otter-happy.png / otter-curious.png / otter-glow.png
+│   │   ├── splash-1~4.png + frame-1~3.png   # 启动页 7 帧动画
+│   │   ├── onboard-1~3.png + otter-onboard.png  # 引导页 4 步
+│   │   └── share-bg.png    # 分享卡片背景
+│   ├── favicon.svg
+│   └── icons.svg
 ├── src/
-│   ├── App.tsx # 主组件（6 个页面状态）
-│   ├── data.ts         # 卡牌数据、拥抱消息、情绪标签
-│   └── index.css       # 全局样式（含暗色模式、动画 keyframes）
+│   ├── App.tsx             # 主组件（7 个页面状态）
+│   ├── data.ts             # 卡牌数据、拥抱消息、情绪标签
+│   └── index.css           # 全局样式（含暗色模式、动画 keyframes）
+├── ios/                    # Capacitor iOS 原生工程
+│   └── App/App/
+│       ├── Assets.xcassets/  # App 图标 + 启动屏
+│       └── public/           # Web 构建产物
+├── android/                # Capacitor Android 原生工程
+│   └── app/src/main/
+│       ├── res/              # App 图标（5 种密度）
+│       └── assets/public/    # Web 构建产物
+├── capacitor.config.json
 ├── index.html
 ├── package.json
 ├── tsconfig.json
@@ -73,7 +79,7 @@ nianqi-mvp/
 | 页面 | 路由状态 | 说明 |
 |------|---------|------|
 | 启动页 | `splash` | 念念浮起序列帧动画，自动跳转引导页 |
-| 引导页 | `onboard` | 3 步品牌介绍，新用户首次展示 |
+| 引导页 | `onboard` | 4 步品牌介绍（欢迎 → 念念 → 情绪卡 → 开始），新用户首次展示，老用户自动跳过 |
 | 首页 | `home` | 情绪卡展示，支持换卡、进入对话 |
 | 对话页 | `chat` | 苏格拉底式 AI 引导对话，念念表情动态切换 |
 | 日记本 | `journal` | 7 天趋势图 + 历史觉察记录列表 |
@@ -130,7 +136,7 @@ nianqi-mvp/
 
 ```bash
 # 安装依赖
-npm install
+NODE_ENV=development npm install
 
 # 开发模式
 npm run dev
@@ -140,6 +146,69 @@ npm run build
 
 # 预览构建结果
 npm run preview
+```
+
+---
+
+## 跨端打包（Capacitor）
+
+基于 [Capacitor](https://capacitorjs.com/) 将 Web 项目封装为 iOS / Android 原生 App，零代码改动。
+
+### 环境要求
+
+| 目标平台 | 必需 |
+|---------|------|
+| iOS | macOS + Xcode 15+ |
+| Android | Android Studio + JDK 17+ |
+
+### 首次配置
+
+```bash
+# 1. 安装依赖（确保 devDependencies 也被安装）
+NODE_ENV=development npm install
+
+# 2. 生成 App 图标（logo-512.png → 所有尺寸 + 启动屏）
+npx capacitor-assets generate --iconBackgroundColor '#C8A882' --splashBackgroundColor '#1A3B4C'
+
+# 3. 构建 web + 同步到原生工程
+npm run cap:sync
+```
+
+### 打包 iOS
+
+```bash
+# 打开 Xcode
+npm run cap:open:ios
+
+# 在 Xcode 中：
+# Product → Archive → Distribute App
+```
+
+### 打包 Android
+
+```bash
+# 打开 Android Studio
+npm run cap:open:android
+
+# 在 Android Studio 中：
+# Build → Generate Signed Bundle / APK
+```
+
+### 快捷命令
+
+| 命令 | 说明 |
+|------|------|
+| `npm run cap:sync` | 构建 web + 同步到 ios/ 和 android/ |
+| `npm run cap:open:ios` | 用 Xcode 打开 iOS 工程 |
+| `npm run cap:open:android` | 用 Android Studio 打开 Android 工程 |
+
+### 插件扩展
+
+需要原生能力时安装对应插件：
+
+```bash
+# 示例：状态栏、分享、本地通知
+npm install @capacitor/status-bar @capacitor/share @capacitor/local-notifications
 ```
 
 ---

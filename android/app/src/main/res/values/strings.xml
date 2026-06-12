@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">念起</string>
+    <string name="title_activity_main">念起</string>
+    <string name="package_name">ai.mindrise.nianqi</string>
+    <string name="custom_url_scheme">ai.mindrise.nianqi</string>
+</resources>

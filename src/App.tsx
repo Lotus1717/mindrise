@@ -14,8 +14,11 @@ const OTTER_GLOW    = '/otter-frames/otter-glow.png'
 const SPLASH_FRAMES = [
   '/otter-frames/splash-1.png','/otter-frames/splash-2.png',
   '/otter-frames/splash-3.png','/otter-frames/splash-4.png',
+  '/otter-frames/frame-1.png','/otter-frames/frame-2.png',
+  '/otter-frames/frame-3.png',
 ]
 const ONBOARD_STEPS = [
+  { img: '/otter-frames/otter-onboard.png', title: '欢迎来到念起', sub: '觉察即自由。\n和念念一起踏上心灵之旅。' },
   { img: '/otter-frames/onboard-1.png', title: '念念在这里', sub: '一只温暖的小水獭，陪你每一次觉察，\n不问对错，只在乎你的感受。' },
   { img: '/otter-frames/onboard-2.png', title: '抽一张情绪卡', sub: '每天一张专属卡牌，带你看见\n此刻内心最真实的样子。' },
   { img: '/otter-frames/onboard-3.png', title: '开始觉察', sub: '和念念一起，用温柔的好奇，\n走进情绪深处，找到内心的答案。' },
@@ -113,27 +116,29 @@ function ShareModal({ card, onClose }: { card: typeof CARDS[0]; onClose: () => v
     c.width = 750 * dpr; c.height = 1100 * dpr
     ctx.scale(dpr, dpr)
     const W = 750, H = 1100
-    const g = ctx.createLinearGradient(0,0,0,H)
-    g.addColorStop(0,'#C8DFF0'); g.addColorStop(1,'#D8C8E8')
-    ctx.fillStyle = g; ctx.fillRect(0,0,W,H)
-    ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.beginPath(); ctx.arc(610,70,110,0,Math.PI*2); ctx.fill()
-    ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.beginPath(); ctx.arc(120,980,70,0,Math.PI*2); ctx.fill()
-    const img = new Image(); img.crossOrigin = 'anonymous'; img.src = card.cardImg
-    img.onload = () => {
-      ctx.drawImage(img,75,120,600,480)
-      ctx.fillStyle = CARD_COLORS[card.word]||'#E8B4A2'; ctx.font='bold 80px sans-serif'; ctx.textAlign='center'
-      ctx.fillText(card.word, W/2, 680)
-      ctx.fillStyle = '#8E7A72'; ctx.font = '34px sans-serif'
-      ctx.fillText(card.guide, W/2, 760)
-      ctx.strokeStyle = 'rgba(232,180,162,0.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([10,8])
-      ctx.beginPath(); ctx.moveTo(150,810); ctx.lineTo(600,810); ctx.stroke(); ctx.setLineDash([])
-      const ot = new Image(); ot.crossOrigin = 'anonymous'; ot.src = OTTER_DEFAULT
-      ot.onload = () => {
-        ctx.drawImage(ot, W/2-65, 840, 130, 130)
-        ctx.fillStyle = '#B8926C'; ctx.font = '30px sans-serif'; ctx.textAlign = 'center'
-        ctx.fillText('念起 · 觉察即自由', W/2, 1015)
-        ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '22px sans-serif'
-        ctx.fillText('念念陪你每一次觉察', W/2, 1060)
+    // 使用预制分享背景图
+    const bg = new Image(); bg.crossOrigin = 'anonymous'; bg.src = '/otter-frames/share-bg.png'
+    bg.onload = () => {
+      ctx.drawImage(bg, 0, 0, W, H)
+      ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.beginPath(); ctx.arc(610,70,110,0,Math.PI*2); ctx.fill()
+      ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.arc(120,980,70,0,Math.PI*2); ctx.fill()
+      const img = new Image(); img.crossOrigin = 'anonymous'; img.src = card.cardImg
+      img.onload = () => {
+        ctx.drawImage(img,75,120,600,480)
+        ctx.fillStyle = CARD_COLORS[card.word]||'#E8B4A2'; ctx.font='bold 80px sans-serif'; ctx.textAlign='center'
+        ctx.fillText(card.word, W/2, 680)
+        ctx.fillStyle = '#8E7A72'; ctx.font = '34px sans-serif'
+        ctx.fillText(card.guide, W/2, 760)
+        ctx.strokeStyle = 'rgba(232,180,162,0.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([10,8])
+        ctx.beginPath(); ctx.moveTo(150,810); ctx.lineTo(600,810); ctx.stroke(); ctx.setLineDash([])
+        const ot = new Image(); ot.crossOrigin = 'anonymous'; ot.src = OTTER_DEFAULT
+        ot.onload = () => {
+          ctx.drawImage(ot, W/2-65, 840, 130, 130)
+          ctx.fillStyle = '#B8926C'; ctx.font = '30px sans-serif'; ctx.textAlign = 'center'
+          ctx.fillText('念起 · 觉察即自由', W/2, 1015)
+          ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '22px sans-serif'
+          ctx.fillText('念念陪你每一次觉察', W/2, 1060)
+        }
       }
     }
   }, [card])
@@ -188,6 +193,7 @@ export default function App() {
   const [changing, setChanging] = useState(false)
   const [splashFrame, setSplashFrame] = useState(0)
   const [showTip, setShowTip] = useState(false)
+  const [tipIdx, setTipIdx] = useState(0)
   const [otterMood, setOtterMood] = useState(OTTER_DEFAULT)
   const [darkMode, setDarkMode] = useState(false)
   const [onboardIdx, setOnboardIdx] = useState(0)
@@ -208,7 +214,7 @@ export default function App() {
   useEffect(() => {
     if (page !== 'chat' || msgs.length === 0) return
     if (tipTimerRef.current) clearTimeout(tipTimerRef.current)
-    tipTimerRef.current = setTimeout(() => setShowTip(true), 15000)
+    tipTimerRef.current = setTimeout(() => { setShowTip(true); setTipIdx(Math.floor(Math.random()*GUIDANCE.length)) }, 15000)
     return () => { if (tipTimerRef.current) clearTimeout(tipTimerRef.current) }
   }, [page, msgs.length])
 
@@ -264,7 +270,9 @@ export default function App() {
         <div className="splash-moon"/><div className="splash-water"/>
         <img key={splashFrame} className="splash-otter" src={SPLASH_FRAMES[splashFrame]} alt="念念" style={{animation:'splashFrameIn 0.9s ease forwards'}} />
         <div className="splash-brand"><h1>念起</h1><p>觉察即自由</p></div>
-        <button className="splash-enter" onClick={()=>setPage('onboard')}>开启觉察之旅</button>
+        <button className="splash-enter" onClick={()=>{
+          setPage(localStorage.getItem('nianqi-onboarded') ? 'home' : 'onboard')
+        }}>开启觉察之旅</button>
         <div className="splash-disclaimer"><p>「念起」不替代专业心理咨询。如有严重心理困扰，请寻求专业帮助。</p></div>
       </div>
     )
@@ -287,7 +295,7 @@ export default function App() {
             <><button className="btn-ghost" style={{flex:1}} onClick={()=>setPage('home')}>跳过</button>
                <button className="btn-primary" style={{flex:2}} onClick={()=>setOnboardIdx(i=>i+1)}>继续</button></>
           ) : (
-            <button className="btn-primary" style={{flex:1}} onClick={()=>setPage('home')}>开始使用</button>
+            <button className="btn-primary" style={{flex:1}} onClick={()=>{ localStorage.setItem('nianqi-onboarded','1'); setPage('home') }}>开始使用</button>
           )}
         </div>
       </div>
@@ -361,7 +369,7 @@ export default function App() {
             )}
             <div ref={endRef}/>
           </div>
-          {showTip&&(<div className="otter-tip-bubble">{GUIDANCE[Math.floor(Math.random()*GUIDANCE.length)]}</div>)}
+          {showTip&&(<div className="otter-tip-bubble">{GUIDANCE[tipIdx]}</div>)}
           <div className="chat-input-bar">
             <input className="chat-input" placeholder="慢慢来，我在听……" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleSend()}/>
             <button className="chat-send" onClick={handleSend}>↑</button>
