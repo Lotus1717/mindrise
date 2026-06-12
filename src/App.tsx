@@ -137,36 +137,95 @@ function RecordModal({ card, onClose, onSave }: { card: typeof CARDS[0]; onClose
 
 function ShareModal({ card, onClose }: { card: typeof CARDS[0]; onClose: () => void }) {
   const ref = useRef<HTMLCanvasElement>(null)
+  const splashIdxRef = useRef(-1)
   useEffect(() => {
     const c = ref.current
     if (!c) return
+    if (splashIdxRef.current < 0) splashIdxRef.current = Math.floor(Math.random() * SPLASH_FRAMES.length)
+    const splashPick = splashIdxRef.current
     const ctx = c.getContext('2d')!
     const dpr = Math.min(window.devicePixelRatio || 1, 3)
-    c.width = 750 * dpr; c.height = 1100 * dpr
-    ctx.scale(dpr, dpr)
     const W = 750, H = 1100
-    // 使用预制分享背景图
+    c.width = W * dpr; c.height = H * dpr
+    ctx.scale(dpr, dpr)
+
+    // 背景
     const bg = new Image(); bg.crossOrigin = 'anonymous'; bg.src = '/otter-frames/share-bg.png'
     bg.onload = () => {
       ctx.drawImage(bg, 0, 0, W, H)
-      ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.beginPath(); ctx.arc(610,70,110,0,Math.PI*2); ctx.fill()
-      ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.arc(120,980,70,0,Math.PI*2); ctx.fill()
-      const img = new Image(); img.crossOrigin = 'anonymous'; img.src = card.cardImg
-      img.onload = () => {
-        ctx.drawImage(img,75,120,600,480)
-        ctx.fillStyle = CARD_COLORS[card.word]||'#E8B4A2'; ctx.font='bold 80px sans-serif'; ctx.textAlign='center'
-        ctx.fillText(card.word, W/2, 680)
-        ctx.fillStyle = '#8E7A72'; ctx.font = '34px sans-serif'
-        ctx.fillText(card.guide, W/2, 760)
-        ctx.strokeStyle = 'rgba(232,180,162,0.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([10,8])
-        ctx.beginPath(); ctx.moveTo(150,810); ctx.lineTo(600,810); ctx.stroke(); ctx.setLineDash([])
-        const ot = new Image(); ot.crossOrigin = 'anonymous'; ot.src = OTTER_DEFAULT
-        ot.onload = () => {
-          ctx.drawImage(ot, W/2-65, 840, 130, 130)
-          ctx.fillStyle = '#B8926C'; ctx.font = '30px sans-serif'; ctx.textAlign = 'center'
-          ctx.fillText('念起 · 觉察即自由', W/2, 1015)
-          ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '22px sans-serif'
-          ctx.fillText('念念陪你每一次觉察', W/2, 1060)
+
+      // Hero 图：随机 splash 帧
+      const hero = new Image(); hero.crossOrigin = 'anonymous'; hero.src = SPLASH_FRAMES[splashPick]
+      hero.onload = () => {
+        const heroW = 480, heroH = 400, heroX = (W - heroW) / 2, heroY = 70, heroR = 24
+        // 圆角裁剪
+        ctx.save()
+        ctx.beginPath(); ctx.moveTo(heroX + heroR, heroY)
+        ctx.lineTo(heroX + heroW - heroR, heroY); ctx.quadraticCurveTo(heroX + heroW, heroY, heroX + heroW, heroY + heroR)
+        ctx.lineTo(heroX + heroW, heroY + heroH - heroR); ctx.quadraticCurveTo(heroX + heroW, heroY + heroH, heroX + heroW - heroR, heroY + heroH)
+        ctx.lineTo(heroX + heroR, heroY + heroH); ctx.quadraticCurveTo(heroX, heroY + heroH, heroX, heroY + heroH - heroR)
+        ctx.lineTo(heroX, heroY + heroR); ctx.quadraticCurveTo(heroX, heroY, heroX + heroR, heroY)
+        ctx.closePath(); ctx.clip()
+        ctx.drawImage(hero, heroX, heroY, heroW, heroH)
+        // 情绪色叠加
+        ctx.fillStyle = `${CARD_COLORS[card.word] || '#C8A882'}66`
+        ctx.fillRect(heroX, heroY, heroW, heroH)
+        ctx.restore()
+
+        // 情绪词叠加在 hero 上
+        ctx.fillStyle = '#FFFFFF'
+        ctx.font = 'bold 52px "PingFang SC",-apple-system,sans-serif'
+        ctx.textAlign = 'center'
+        ctx.shadowColor = 'rgba(0,0,0,0.25)'; ctx.shadowBlur = 8
+        ctx.fillText(card.word, W / 2, heroY + heroH / 2 + 14)
+        ctx.shadowBlur = 0
+
+        // Logo 水印在 hero 右上角
+        const logoImg = new Image(); logoImg.crossOrigin = 'anonymous'; logoImg.src = '/logo/logo-48.png'
+        logoImg.onload = () => {
+          ctx.save()
+          ctx.globalAlpha = 0.7
+          ctx.drawImage(logoImg, heroX + heroW - 56, heroY + 12, 40, 40)
+          ctx.restore()
+
+          // 引导语（自动换行）
+          const guideY = heroY + heroH + 44
+          ctx.fillStyle = '#3C2E2B'
+          ctx.font = '28px "PingFang SC",-apple-system,sans-serif'
+          ctx.textAlign = 'center'
+          const maxWidth = 560
+          const guideText = card.guide
+          const words = guideText.split('')
+          let line = ''; const lines: string[] = []
+          for (const ch of words) {
+            const test = line + ch
+            if (ctx.measureText(test).width > maxWidth) {
+              lines.push(line); line = ch
+            } else {
+              line = test
+            }
+          }
+          if (line) lines.push(line)
+          lines.forEach((l, i) => {
+            ctx.fillText(l, W / 2, guideY + i * 44)
+          })
+
+          // 心情标记
+          const moodY = guideY + lines.length * 44 + 40
+          ctx.font = '22px "PingFang SC",-apple-system,sans-serif'
+          ctx.fillStyle = '#8E7A72'
+          ctx.fillText('觉察 · 念起', W / 2, moodY)
+
+          // 底部水獭 + 品牌
+          const ot = new Image(); ot.crossOrigin = 'anonymous'; ot.src = OTTER_GLOW
+          ot.onload = () => {
+            const otY = Math.max(moodY + 50, H - 230)
+            ctx.drawImage(ot, W / 2 - 50, otY, 100, 100)
+            ctx.fillStyle = '#B8926C'; ctx.font = 'bold 26px "PingFang SC",-apple-system,sans-serif'
+            ctx.fillText('念起 · 觉察即自由', W / 2, otY + 130)
+            ctx.fillStyle = '#8E7A72'; ctx.font = '18px "PingFang SC",-apple-system,sans-serif'
+            ctx.fillText('念念陪你每一次觉察', W / 2, otY + 160)
+          }
         }
       }
     }
