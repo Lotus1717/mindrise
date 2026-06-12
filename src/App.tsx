@@ -69,8 +69,11 @@ function RecordModal({ card, onClose, onSave }: { card: typeof CARDS[0]; onClose
   const [summary, setSummary] = useState('')
   const [saved, setSaved] = useState(false)
   const [editing, setEditing] = useState(false)
+  const savingRef = useRef(false)
   const defaultSummary = `今天，我在「念起」与念念一起完成了一次情绪觉察。我感受到的是「${card.word}」——${card.guide} 这个时刻，值得被记住。`
   const handleSave = useCallback(() => {
+    if (savingRef.current) return
+    savingRef.current = true
     const now = new Date()
     const item: JournalItem = {
       id: String(Date.now()),
