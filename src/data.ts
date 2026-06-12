@@ -1,14 +1,14 @@
 export const CARDS = [
-  { id: 1, word: '焦虑', pinyin: 'Jiaolu', guide: '此刻，你身体里有一个声音在低语……它想告诉你什么？', cardImg: '/cards/card-anxiety.png' },
-  { id: 2, word: '平静', pinyin: 'Píngjìng', guide: '水面如镜，你看见了自己真实的样子。', cardImg: '/cards/card-calm.png' },
-  { id: 3, word: '疲惫', pinyin: 'Píbèi', guide: '累了就停下，没有人在计时。', cardImg: '/cards/card-exhaustion.png' },
-  { id: 4, word: '欣喜', pinyin: 'Xīnxǐ', guide: '这份快乐，像阳光一样值得被记住。', cardImg: '/cards/card-joy.png' },
-  { id: 5, word: '孤独', pinyin: 'Gūdú', guide: '你并非独自一人，只是需要被看见。', cardImg: '/cards/card-loneliness.png' },
-  { id: 6, word: '愤怒', pinyin: 'Fènnù', guide: '那股力量在告诉你，边界需要被守护。', cardImg: '/cards/card-anger.png' },
-  { id: 7, word: '感恩', pinyin: 'GanEn', guide: '今天有什么，是你特别想说的谢谢？', cardImg: '/cards/card-gratitude.png' },
-  { id: 8, word: '迷茫', pinyin: 'Mímáng', guide: '方向还未出现，也许是因为你还有时间探索。', cardImg: '/cards/card-confusion.png' },
-  { id: 9, word: '期待', pinyin: 'Qīdài', guide: '那个小小的希望，还在发芽。', cardImg: '/cards/card-anticipation.png' },
-  { id: 10, word: '释然', pinyin: 'Shìrán', guide: '有些事，你已经准备好了放下。', cardImg: '/cards/card-relief.png' },
+  { id: 1, word: '焦虑', pinyin: 'Jiaolu', guide: '此刻，你身体里有一个声音在低语……它想告诉你什么？', cardImg: '/cards/card-anxiety.webp' },
+  { id: 2, word: '平静', pinyin: 'Píngjìng', guide: '水面如镜，你看见了自己真实的样子。', cardImg: '/cards/card-calm.webp' },
+  { id: 3, word: '疲惫', pinyin: 'Píbèi', guide: '累了就停下，没有人在计时。', cardImg: '/cards/card-exhaustion.webp' },
+  { id: 4, word: '欣喜', pinyin: 'Xīnxǐ', guide: '这份快乐，像阳光一样值得被记住。', cardImg: '/cards/card-joy.webp' },
+  { id: 5, word: '孤独', pinyin: 'Gūdú', guide: '你并非独自一人，只是需要被看见。', cardImg: '/cards/card-loneliness.webp' },
+  { id: 6, word: '愤怒', pinyin: 'Fènnù', guide: '那股力量在告诉你，边界需要被守护。', cardImg: '/cards/card-anger.webp' },
+  { id: 7, word: '感恩', pinyin: 'GanEn', guide: '今天有什么，是你特别想说的谢谢？', cardImg: '/cards/card-gratitude.webp' },
+  { id: 8, word: '迷茫', pinyin: 'Mímáng', guide: '方向还未出现，也许是因为你还有时间探索。', cardImg: '/cards/card-confusion.webp' },
+  { id: 9, word: '期待', pinyin: 'Qīdài', guide: '那个小小的希望，还在发芽。', cardImg: '/cards/card-anticipation.webp' },
+  { id: 10, word: '释然', pinyin: 'Shìrán', guide: '有些事，你已经准备好了放下。', cardImg: '/cards/card-relief.webp' },
 ]
 
 export const AI_REPLIES = [
@@ -25,10 +25,10 @@ export const AI_REPLIES = [
 ]
 
 export const JOURNAL_DATA = [
-  { id: 1, date: '6月10日', day: '周二', emotion: '焦虑', rating: 3, cardWord: '焦虑', preview: '胸口有点闷，深呼吸之后稍微缓解了一些。下午开完会感觉整个人都被掏空了，需要早点休息。', cardImg: '/cards/card-anxiety.png' },
-  { id: 2, date: '6月9日', day: '周一', emotion: '平静', rating: 4, cardWord: '平静', preview: '今天睡了个好觉，醒来觉得世界都亮了一些。下午独自去公园散步，发现自己很久没有这样慢下来了。', cardImg: '/cards/card-calm.png' },
-  { id: 3, date: '6月7日', day: '周六', emotion: '欣喜', rating: 5, cardWord: '欣喜', preview: '收到了好朋友的礼物，是一本想了很久的书。这个世界上还有人会记得你喜欢什么，真的很温暖。', cardImg: '/cards/card-joy.png' },
-  { id: 4, date: '6月5日', day: '周四', emotion: '疲惫', rating: 2, cardWord: '疲惫', preview: '连轴转了三天，感觉身体在抗议。下周要给自己放一天假，什么都不做，只是休息。', cardImg: '/cards/card-exhaustion.png' },
+  { id: 1, date: '6月10日', day: '周二', emotion: '焦虑', rating: 3, cardWord: '焦虑', preview: '胸口有点闷，深呼吸之后稍微缓解了一些。下午开完会感觉整个人都被掏空了，需要早点休息。', cardImg: '/cards/card-anxiety.webp' },
+  { id: 2, date: '6月9日', day: '周一', emotion: '平静', rating: 4, cardWord: '平静', preview: '今天睡了个好觉，醒来觉得世界都亮了一些。下午独自去公园散步，发现自己很久没有这样慢下来了。', cardImg: '/cards/card-calm.webp' },
+  { id: 3, date: '6月7日', day: '周六', emotion: '欣喜', rating: 5, cardWord: '欣喜', preview: '收到了好朋友的礼物，是一本想了很久的书。这个世界上还有人会记得你喜欢什么，真的很温暖。', cardImg: '/cards/card-joy.webp' },
+  { id: 4, date: '6月5日', day: '周四', emotion: '疲惫', rating: 2, cardWord: '疲惫', preview: '连轴转了三天，感觉身体在抗议。下周要给自己放一天假，什么都不做，只是休息。', cardImg: '/cards/card-exhaustion.webp' },
 ]
 
 export const HUG_MESSAGES = [

@@ -27,13 +27,19 @@ body {
   position: absolute; bottom: 0; left: 0; right: 0; height: 35%;
   background: linear-gradient(180deg, #1A3B4C 0%, #0D2535 100%);
 }
+.splash-otter-wrap {
+  position: relative; width: 200px; height: 200px; z-index: 2;
+  animation: splashFloat 3s ease-in-out infinite;
+}
 .splash-otter {
   width: 200px; height: 200px; border-radius: 50%; object-fit: cover;
-  position: relative; z-index: 2;
-  animation: splashFloat 3s ease-in-out infinite;
+  position: absolute; inset: 0;
   box-shadow: 0 0 60px rgba(255,229,180,0.5);
-  will-change: transform, opacity;
+  transition: opacity 0.55s ease;
+  will-change: opacity;
 }
+.splash-otter-active { opacity: 1; z-index: 2; }
+.splash-otter-inactive { opacity: 0; z-index: 1; }
 @keyframes splashFloat {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-12px); }
@@ -397,8 +403,7 @@ body {
   box-shadow: 0 12px 48px rgba(60,46,43,0.18); margin-bottom: 32px;
   will-change: transform, opacity;
 }
-.onboard-img { width: 100%; height: 100%; object-fit: cover; animation: onboardImgIn 0.5s ease forwards; }
-@keyframes onboardImgIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+.onboard-img { width: 100%; height: 100%; object-fit: cover; }
 .onboard-title { font-size: 26px; font-weight: 700; color: var(--text-dark); margin-bottom: 12px; letter-spacing: 2px; }
 .onboard-sub { font-size: 15px; color: var(--text-muted); line-height: 1.9; white-space: pre-line; margin-bottom: 28px; }
 .onboard-dots { display: flex; gap: 8px; margin-bottom: 32px; }

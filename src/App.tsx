@@ -3,6 +3,11 @@ import './index.css'
 import { storageGet, storageSet } from './storage'
 import { CARDS, HUG_MESSAGES, emotionTags } from './data'
 import {
+  OTTER_DEFAULT, OTTER_CURIOUS, OTTER_GLOW,
+  SPLASH_FRAMES, ONBOARD_STEPS, SHARE_BG, LOGO_48,
+} from './assets'
+import { preloadImage, preloadImages, preloadImagesIdle } from './preload'
+import {
   Home, BookOpen, User, Share2, Moon, Sun,
   Calendar, Sparkles, Heart, Info, ArrowLeft,
 } from 'lucide-react'
@@ -21,21 +26,6 @@ type JournalItem = {
   ts: number
 }
 
-const OTTER_DEFAULT = '/otter-frames/otter-happy.png'
-const OTTER_CURIOUS = '/otter-frames/otter-curious.png'
-const OTTER_GLOW    = '/otter-frames/otter-glow.png'
-const SPLASH_FRAMES = [
-  '/otter-frames/splash-1.png','/otter-frames/splash-2.png',
-  '/otter-frames/splash-3.png','/otter-frames/splash-4.png',
-  '/otter-frames/frame-1.png','/otter-frames/frame-2.png',
-  '/otter-frames/frame-3.png',
-]
-const ONBOARD_STEPS = [
-  { img: '/otter-frames/otter-onboard.png', title: '欢迎来到念起', sub: '觉察即自由。\n和念念一起踏上心灵之旅。' },
-  { img: '/otter-frames/onboard-1.png', title: '念念在这里', sub: '一只温暖的小水獭，陪你每一次觉察，\n不问对错，只在乎你的感受。' },
-  { img: '/otter-frames/onboard-2.png', title: '抽一张情绪卡', sub: '每天一张专属卡牌，带你看见\n此刻内心最真实的样子。' },
-  { img: '/otter-frames/onboard-3.png', title: '开始觉察', sub: '和念念一起，用温柔的好奇，\n走进情绪深处，找到内心的答案。' },
-]
 const CARD_COLORS: Record<string,string> = {
   '焦虑':'#E8B4A2','疲惫':'#C9A882','愤怒':'#C97A6A','平静':'#A7C5BD',
   '欣喜':'#FFE5B4','孤独':'#8E7A72','感恩':'#D4A8A0','迷茫':'#9BAEC8',
@@ -150,7 +140,7 @@ function ShareModal({ card, onClose }: { card: typeof CARDS[0]; onClose: () => v
     ctx.scale(dpr, dpr)
 
     // 背景
-    const bg = new Image(); bg.crossOrigin = 'anonymous'; bg.src = '/otter-frames/share-bg.png'
+    const bg = new Image(); bg.crossOrigin = 'anonymous'; bg.src = SHARE_BG
     bg.onload = () => {
       ctx.drawImage(bg, 0, 0, W, H)
 
@@ -181,7 +171,7 @@ function ShareModal({ card, onClose }: { card: typeof CARDS[0]; onClose: () => v
         ctx.shadowBlur = 0
 
         // Logo 水印在 hero 右上角
-        const logoImg = new Image(); logoImg.crossOrigin = 'anonymous'; logoImg.src = '/logo/logo-48.png'
+        const logoImg = new Image(); logoImg.crossOrigin = 'anonymous'; logoImg.src = LOGO_48
         logoImg.onload = () => {
           ctx.save()
           ctx.globalAlpha = 0.7
@@ -292,7 +282,10 @@ export default function App() {
   const [showEditName, setShowEditName] = useState(false)
   const [hugIdx, setHugIdx] = useState(()=>Math.floor(Math.random()*HUG_MESSAGES.length))
   const [changing, setChanging] = useState(false)
-  const [splashFrame, setSplashFrame] = useState(0)
+  const splashFrameRef = useRef(0)
+  const splashLayerRef = useRef(0)
+  const [splashSrcs, setSplashSrcs] = useState<[string, string]>([SPLASH_FRAMES[0], SPLASH_FRAMES[0]])
+  const [activeSplashLayer, setActiveSplashLayer] = useState(0)
   const [showTip, setShowTip] = useState(false)
   const [tipIdx, setTipIdx] = useState(0)
   const [otterMood, setOtterMood] = useState(OTTER_DEFAULT)
@@ -308,10 +301,42 @@ export default function App() {
   const sendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
+    preloadImages([OTTER_DEFAULT, OTTER_CURIOUS, OTTER_GLOW, CARDS[0].cardImg])
+    preloadImagesIdle(CARDS.map(c => c.cardImg))
+    preloadImagesIdle(ONBOARD_STEPS.map(s => s.img))
+    preloadImagesIdle(SPLASH_FRAMES)
+  }, [])
+
+  useEffect(() => {
+    preloadImage(CARDS[cardIdx].cardImg)
+    preloadImage(CARDS[(cardIdx + 1) % CARDS.length].cardImg)
+  }, [cardIdx])
+
+  useEffect(() => {
     if (page !== 'splash') return
-    const t = setInterval(() => setSplashFrame(f => (f+1)%SPLASH_FRAMES.length), 1800)
-    return () => clearInterval(t)
+    preloadImages(SPLASH_FRAMES)
+    const id = setInterval(async () => {
+      const next = (splashFrameRef.current + 1) % SPLASH_FRAMES.length
+      await preloadImage(SPLASH_FRAMES[next])
+      const layer = 1 - splashLayerRef.current
+      splashFrameRef.current = next
+      splashLayerRef.current = layer
+      setSplashSrcs(prev => {
+        const n: [string, string] = [...prev]
+        n[layer] = SPLASH_FRAMES[next]
+        return n
+      })
+      setActiveSplashLayer(layer)
+    }, 1800)
+    return () => clearInterval(id)
   }, [page])
+
+  useEffect(() => {
+    if (page !== 'onboard') return
+    preloadImages(ONBOARD_STEPS.map(s => s.img))
+    const next = ONBOARD_STEPS[onboardIdx + 1]
+    if (next) preloadImage(next.img)
+  }, [page, onboardIdx])
 
   // 从原生存储加载持久化数据
   useEffect(() => {
@@ -390,11 +415,15 @@ export default function App() {
     }, 1500 + Math.random()*400)
   }, [input, cardIdx])
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback(async () => {
+    const nextIdx = (cardIdx + 1) % CARDS.length
+    await preloadImage(CARDS[nextIdx].cardImg)
     setChanging(true)
-    const t = setTimeout(() => { setCardIdx(i => (i+1)%CARDS.length); setChanging(false) }, 220)
-    return () => clearTimeout(t)
-  }, [])
+    setTimeout(() => {
+      setCardIdx(nextIdx)
+      setChanging(false)
+    }, 220)
+  }, [cardIdx])
 
   const enterChat = useCallback(() => { setPage('chat'); startChat() }, [startChat])
 
@@ -421,7 +450,17 @@ export default function App() {
     return (
       <div className="splash">
         <div className="splash-moon"/><div className="splash-water"/>
-        <img key={splashFrame} className="splash-otter" src={SPLASH_FRAMES[splashFrame]} alt="念念" style={{animation:'splashFrameIn 0.9s ease forwards'}} />
+        <div className="splash-otter-wrap">
+          {splashSrcs.map((src, i) => (
+            <img
+              key={i}
+              className={`splash-otter ${i === activeSplashLayer ? 'splash-otter-active' : 'splash-otter-inactive'}`}
+              src={src}
+              alt="念念"
+              decoding="async"
+            />
+          ))}
+        </div>
         <div className="splash-brand"><h1>念起</h1><p>觉察即自由</p></div>
         <button className="splash-enter" onClick={()=>{
           setPage(onboarded ? 'home' : 'onboard')
@@ -436,7 +475,7 @@ export default function App() {
     return (
       <div className="onboard-page">
         <div className="onboard-img-wrap">
-          <img key={onboardIdx} src={step.img} alt={step.title} className="onboard-img" style={{animation:'onboardImgIn 0.5s ease forwards'}} loading="lazy" />
+          <img src={step.img} alt={step.title} className="onboard-img" decoding="async" />
         </div>
         <div className="onboard-title">{step.title}</div>
         <div className="onboard-sub">{step.sub}</div>
@@ -474,7 +513,7 @@ export default function App() {
             <div className={`card-container ${changing?'card-out':'card-in'}`}>
               <div className="emotion-card" onClick={enterChat} style={{cursor:'pointer'}}>
                 <div style={{position:'relative',width:'100%',height:215,borderRadius:16,overflow:'hidden',marginBottom:20}}>
-                  <img decoding="async" src={card.cardImg} alt={card.word} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{(e.currentTarget as HTMLImageElement).style.display='none'}} loading="lazy" />
+                  <img decoding="async" src={card.cardImg} alt={card.word} style={{width:'100%',height:'100%',objectFit:'cover'}} fetchPriority="high" />
                   <div style={{position:'absolute',inset:0,background:`linear-gradient(160deg,${CARD_COLORS[card.word]}cc,${CARD_COLORS[card.word]}99)`,display:'flex',alignItems:'center',justifyContent:'center'}}><div className="card-art-orb"/></div>
                 </div>
                 <div className="card-emotion-word" style={{letterSpacing:6}}>{card.word}</div>
@@ -495,7 +534,7 @@ export default function App() {
           <div className="chat-header">
             <div style={{display:'flex',alignItems:'center',gap:4}}><ArrowLeft size={20} strokeWidth={2} style={{cursor:'pointer'}} onClick={()=>setPage('home')}/></div>
             <div className="chat-header-card" onClick={()=>setPage('home')}>
-              <img decoding="async" src={card.cardImg} alt={card.word} style={{width:40,height:40,objectFit:'cover',borderRadius:10}} loading="lazy" />
+              <img decoding="async" src={card.cardImg} alt={card.word} style={{width:40,height:40,objectFit:'cover',borderRadius:10}} />
               <span style={{fontWeight:600}}>{card.word}</span>
             </div>
             <img decoding="async" src={otterMood} alt="念念" style={{width:40,height:40,borderRadius:'50%',objectFit:'cover',flexShrink:0,boxShadow:'0 2px 8px rgba(201,168,130,0.3)'}} />
