@@ -7,6 +7,7 @@ import {
   SPLASH_FRAMES, ONBOARD_STEPS, SHARE_BG, LOGO_48,
 } from './assets'
 import { preloadImage, preloadImages, preloadImagesIdle } from './preload'
+import { chatWithNianNian, type ChatMessage } from './ai'
 import {
   Home, BookOpen, User, Share2, Moon, Sun,
   Calendar, Sparkles, Heart, Info, ArrowLeft,
@@ -298,7 +299,7 @@ export default function App() {
   const [journal, setJournal] = useState<JournalItem[]>([])
   const endRef = useRef<HTMLDivElement>(null)
   const tipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const sendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const chatAbortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     preloadImages([OTTER_DEFAULT, OTTER_CURIOUS, OTTER_GLOW, CARDS[0].cardImg])
@@ -372,48 +373,91 @@ export default function App() {
     return () => { if (tipTimerRef.current) clearTimeout(tipTimerRef.current) }
   }, [page, msgs.length])
 
-  const startChat = useCallback(() => {
+  useEffect(() => () => { chatAbortRef.current?.abort() }, [])
+
+  const toApiMessages = useCallback((list: { role: 'ai' | 'user'; text: string }[]): ChatMessage[] =>
+    list.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), [])
+
+  const fallbackReply = useCallback((emotion: string) => {
+    const pool = SOCRATIC[emotion] || GUIDANCE
+    return pool[Math.floor(Math.random() * pool.length)]
+  }, [])
+
+  const requestAiReply = useCallback(async (
+    emotion: string,
+    guide: string,
+    history: ChatMessage[],
+  ) => {
+    chatAbortRef.current?.abort()
+    const controller = new AbortController()
+    chatAbortRef.current = controller
+    return chatWithNianNian({
+      emotion,
+      guide,
+      userName,
+      messages: history,
+      signal: controller.signal,
+    })
+  }, [userName])
+
+  const startChat = useCallback(async () => {
     const card = CARDS[cardIdx]
-    const reps = SOCRATIC[card.word] || GUIDANCE
     const existing = chatHistory[cardIdx]
-    setMsgs(existing && existing.length > 0 ? existing : [{ role:'ai', text: reps[0] }])
     setOtterMood(OTTER_CURIOUS)
     setShowTip(false)
-  }, [cardIdx, chatHistory])
-
-  const handleSend = useCallback(() => {
-    if (!input.trim()) return
-    const text = input.trim()
-    setMsgs(prev => {
-      const next: {role:'ai'|'user';text:string}[] = [...prev, { role:'user' as const, text }]
-      if (next.length > MAX_MSGS) return next.slice(Math.floor(MAX_MSGS/3))
-      return next
-    })
-    setChatHistory(h => {
-      const cur = h[cardIdx] || []
-      const next = [...cur, { role:'user' as const, text }].slice(-MAX_MSGS)
-      return { ...h, [cardIdx]: next }
-    })
-    setInput(''); setTyping(true); setShowTip(false)
-    if (sendTimerRef.current) clearTimeout(sendTimerRef.current)
-    sendTimerRef.current = setTimeout(() => {
+    if (existing && existing.length > 0) {
+      setMsgs(existing)
+      return
+    }
+    setMsgs([])
+    setTyping(true)
+    try {
+      const reply = await requestAiReply(card.word, card.guide, [])
+      const opening = [{ role: 'ai' as const, text: reply }]
+      setMsgs(opening)
+      setChatHistory(h => ({ ...h, [cardIdx]: opening }))
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') return
+      const opening = [{ role: 'ai' as const, text: fallbackReply(card.word) }]
+      setMsgs(opening)
+      setChatHistory(h => ({ ...h, [cardIdx]: opening }))
+    } finally {
       setTyping(false)
-      const card = CARDS[cardIdx]
-      const reps = SOCRATIC[card.word] || GUIDANCE
-      const reply = reps[Math.floor(Math.random()*reps.length)]
-      setMsgs(prev => {
-        const next: {role:'ai'|'user';text:string}[] = [...prev, { role:'ai' as const, text: reply }]
-        if (next.length > MAX_MSGS) return next.slice(Math.floor(MAX_MSGS/3))
-        return next
-      })
-      setChatHistory(h => {
-      const cur = h[cardIdx] || []
-      const next = [...cur, { role:'ai' as const, text: reply }].slice(-MAX_MSGS)
-      return { ...h, [cardIdx]: next }
-    })
-      setOtterMood(Math.random()>0.4 ? OTTER_CURIOUS : OTTER_DEFAULT)
-    }, 1500 + Math.random()*400)
-  }, [input, cardIdx])
+    }
+  }, [cardIdx, chatHistory, requestAiReply, fallbackReply])
+
+  const handleSend = useCallback(async () => {
+    if (!input.trim() || typing) return
+    const text = input.trim()
+    const card = CARDS[cardIdx]
+    const userMsg = { role: 'user' as const, text }
+    const withUser = [...msgs, userMsg]
+    const trimmed = withUser.length > MAX_MSGS ? withUser.slice(Math.floor(MAX_MSGS / 3)) : withUser
+
+    setMsgs(trimmed)
+    setChatHistory(h => ({ ...h, [cardIdx]: trimmed }))
+    setInput('')
+    setTyping(true)
+    setShowTip(false)
+
+    try {
+      const reply = await requestAiReply(card.word, card.guide, toApiMessages(trimmed))
+      const aiMsg = { role: 'ai' as const, text: reply }
+      const final = [...trimmed, aiMsg]
+      const clipped = final.length > MAX_MSGS ? final.slice(Math.floor(MAX_MSGS / 3)) : final
+      setMsgs(clipped)
+      setChatHistory(h => ({ ...h, [cardIdx]: clipped }))
+      setOtterMood(Math.random() > 0.4 ? OTTER_CURIOUS : OTTER_DEFAULT)
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') return
+      const aiMsg = { role: 'ai' as const, text: fallbackReply(card.word) }
+      const final = [...trimmed, aiMsg]
+      setMsgs(final)
+      setChatHistory(h => ({ ...h, [cardIdx]: final.slice(-MAX_MSGS) }))
+    } finally {
+      setTyping(false)
+    }
+  }, [input, cardIdx, msgs, typing, requestAiReply, toApiMessages, fallbackReply])
 
   const handleNext = useCallback(async () => {
     const nextIdx = (cardIdx + 1) % CARDS.length
@@ -561,8 +605,8 @@ export default function App() {
           </div>
           {showTip&&(<div className="otter-tip-bubble">{GUIDANCE[tipIdx]}</div>)}
           <div className="chat-input-bar">
-            <input className="chat-input" placeholder="慢慢来，我在听……" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleSend()}/>
-            <button className="chat-send" onClick={handleSend}>↑</button>
+            <input className="chat-input" placeholder="慢慢来，我在听……" value={input} disabled={typing} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!typing&&handleSend()}/>
+            <button className="chat-send" onClick={handleSend} disabled={typing || !input.trim()} style={{opacity:typing||!input.trim()?0.45:1}}>↑</button>
           </div>
         </div>
       )}

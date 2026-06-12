@@ -1,6 +1,6 @@
 const cache = new Map<string, Promise<void>>()
 
-/** 预加载单张图片，已加载过的会复用 Promise */
+/** 预加载单张图片，已加载过的会复用 Promise。等待完全解码 */
 export function preloadImage(src: string): Promise<void> {
   if (!src) return Promise.resolve()
   const hit = cache.get(src)
@@ -9,7 +9,14 @@ export function preloadImage(src: string): Promise<void> {
   const p = new Promise<void>((resolve, reject) => {
     const img = new Image()
     img.decoding = 'async'
-    img.onload = () => resolve()
+    img.onload = () => {
+      // 强制解码完成，确保 GPU 纹理已生成
+      if ('decode' in img && typeof (img.decode) === 'function') {
+        img.decode().then(() => resolve()).catch(() => resolve())
+      } else {
+        resolve()
+      }
+    }
     img.onerror = () => reject(new Error(`preload failed: ${src}`))
     img.src = src
   })
