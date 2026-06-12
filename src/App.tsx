@@ -567,7 +567,7 @@ export default function App() {
         </div>
       )}
 
-      {showRecord&&<RecordModal card={card} onClose={()=>setShowRecord(false)} onSave={(item)=>setJournal(j=>[item, ...j])}/>}
+      {showRecord&&<RecordModal card={card} onClose={()=>{ setShowRecord(false); setPage('home'); setMsgs([]) }} onSave={(item)=>setJournal(j=>[item, ...j])}/>}
       {showShare&&<ShareModal card={card} onClose={()=>setShowShare(false)}/>}
     </div>
   )
