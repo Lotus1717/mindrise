@@ -299,6 +299,7 @@ export default function App() {
   const [darkMode, setDarkMode] = useState(()=>localStorage.getItem('mindrise-dark')==='1')
   const [onboardIdx, setOnboardIdx] = useState(0)
   const [userName, setUserName] = useState(()=>localStorage.getItem('mindrise-name')||'朋友')
+  const [expandedJournal, setExpandedJournal] = useState<string | null>(null)
   const [journal, setJournal] = useState<JournalItem[]>(()=>{
     try { return JSON.parse(localStorage.getItem('mindrise-journal')||'[]') } catch { return [] }
   })
@@ -432,7 +433,6 @@ export default function App() {
                 <div style={{position:'relative',width:'100%',height:215,borderRadius:16,overflow:'hidden',marginBottom:20}}>
                   <img src={card.cardImg} alt={card.word} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{(e.currentTarget as HTMLImageElement).style.display='none'}} loading="lazy" />
                   <div style={{position:'absolute',inset:0,background:`linear-gradient(160deg,${CARD_COLORS[card.word]}cc,${CARD_COLORS[card.word]}99)`,display:'flex',alignItems:'center',justifyContent:'center'}}><div className="card-art-orb"/></div>
-                  <div style={{position:'absolute',top:12,right:12,background:'rgba(255,255,255,0.93)',borderRadius:20,padding:'4px 12px',fontSize:11,fontWeight:700,color:CARD_COLORS[card.word]}}>{EMOTION_LETTERS[card.word]} {card.word}</div>
                   <div style={{position:'absolute',bottom:12,left:12,background:'rgba(255,255,255,0.7)',borderRadius:12,padding:'6px 14px',fontSize:12,color:'var(--text-dark)',backdropFilter:'blur(8px)'}}>觉察值 {awarenessValue}%</div>
                 </div>
                 <div className="card-emotion-word" style={{letterSpacing:6}}>{card.word}</div>
@@ -512,25 +512,44 @@ export default function App() {
               <div style={{textAlign:'center',padding:'40px 20px',color:'var(--text-muted)',fontSize:13,lineHeight:1.8}}>
                 还没有日记。<br/>点首页卡牌 → 探索内心 → 生成今日觉察
               </div>
-            ) : journal.map(item=>(
-              <div key={item.id} className="journal-item">
+            ) : journal.map(item=>{
+              const isOpen = expandedJournal === item.id
+              return (
+              <div key={item.id} className="journal-item" onClick={()=>setExpandedJournal(isOpen?null:item.id)} style={{cursor:'pointer'}}>
                 <div style={{display:'flex',gap:12,alignItems:'stretch'}}>
                   <div style={{width:5,borderRadius:3,flexShrink:0,background:CARD_COLORS[item.emotion]}}/>
-                  <div style={{flex:1}}>
+                  <div style={{flex:1,minWidth:0}}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
                         <span style={{fontSize:12,fontWeight:600,color:'var(--text-dark)'}}>{item.date} {item.day}</span>
-                        <span style={{fontSize:12,padding:'2px 10px',borderRadius:20,background:`${CARD_COLORS[item.emotion]}25`,color:CARD_COLORS[item.emotion],fontWeight:600}}>{EMOTION_LETTERS[item.emotion]} {item.emotion}</span>
+                        <span style={{fontSize:12,padding:'2px 10px',borderRadius:20,background:`${CARD_COLORS[item.emotion]}25`,color:CARD_COLORS[item.emotion],fontWeight:600}}>{item.emotion}</span>
                       </div>
-                      <span style={{fontSize:12,color:item.rating?'var(--text-dark)':'var(--text-muted)',letterSpacing:1}}>
+                      <span style={{fontSize:12,color:item.rating?'var(--text-dark)':'var(--text-muted)',letterSpacing:1,flexShrink:0,marginLeft:8}}>
                         {item.rating ? `${MOOD_EMOJI[item.rating]} ${MOOD_LABELS[item.rating]}` : '未评分'}
                       </span>
                     </div>
-                    <div style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{item.summary}</div>
+                    <div style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:isOpen?undefined:2,WebkitBoxOrient:'vertical'}}>{item.summary}</div>
+                    {isOpen && (
+                      <div style={{marginTop:10,paddingTop:10,borderTop:'1px dashed rgba(0,0,0,0.08)'}}>
+                        {item.tags.length>0 && (
+                          <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:10}}>
+                            {item.tags.map(t=><span key={t} style={{fontSize:11,padding:'3px 10px',borderRadius:20,background:`${CARD_COLORS[item.emotion]}18`,color:CARD_COLORS[item.emotion]}}>{t}</span>)}
+                          </div>
+                        )}
+                        {item.cardImg && (
+                          <div style={{display:'flex',alignItems:'center',gap:10,fontSize:12,color:'var(--text-muted)'}}>
+                            <img src={item.cardImg} alt="" style={{width:36,height:48,objectFit:'cover',borderRadius:8}} loading="lazy"/>
+                            <span>来自「{item.emotion}」卡牌</span>
+                          </div>
+                        )}
+                        <div style={{fontSize:11,color:'var(--text-muted)',textAlign:'right',marginTop:8}}>{isOpen?'点击收起 ▲':'点击展开 ▼'}</div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
