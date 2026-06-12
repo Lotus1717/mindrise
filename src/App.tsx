@@ -1,0 +1,474 @@
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import './index.css'
+import { CARDS, HUG_MESSAGES, emotionTags } from './data'
+import {
+  Home, BookOpen, User, Star, Share2, Moon, Sun,
+  Calendar, Sparkles, Heart, FileText, Phone, ArrowLeft,
+} from 'lucide-react'
+
+type Page = 'splash' | 'home' | 'chat' | 'journal' | 'profile' | 'onboard'
+
+const OTTER_DEFAULT = '/otter-frames/otter-happy.png'
+const OTTER_CURIOUS = '/otter-frames/otter-curious.png'
+const OTTER_GLOW    = '/otter-frames/otter-glow.png'
+const SPLASH_FRAMES = [
+  '/otter-frames/splash-1.png','/otter-frames/splash-2.png',
+  '/otter-frames/splash-3.png','/otter-frames/splash-4.png',
+]
+const ONBOARD_STEPS = [
+  { img: '/otter-frames/onboard-1.png', title: '念念在这里', sub: '一只温暖的小水獭，陪你每一次觉察，\n不问对错，只在乎你的感受。' },
+  { img: '/otter-frames/onboard-2.png', title: '抽一张情绪卡', sub: '每天一张专属卡牌，带你看见\n此刻内心最真实的样子。' },
+  { img: '/otter-frames/onboard-3.png', title: '开始觉察', sub: '和念念一起，用温柔的好奇，\n走进情绪深处，找到内心的答案。' },
+]
+const CARD_COLORS: Record<string,string> = {
+  '焦虑':'#E8B4A2','疲惫':'#C9A882','愤怒':'#C97A6A','平静':'#A7C5BD',
+  '欣喜':'#FFE5B4','孤独':'#8E7A72','感恩':'#D4A8A0','迷茫':'#9BAEC8',
+  '期待':'#B8D4C8','释然':'#C8C8A8',
+}
+// 情绪字母标识（彩色圆圈内显示首字）
+const EMOTION_LETTERS: Record<string,string> = {
+  '焦虑':'焦','疲惫':'疲','愤怒':'怒','平静':'平','欣喜':'欣',
+  '孤独':'孤','感恩':'恩','迷茫':'茫','期待':'期','释然':'释',
+}
+const SOCRATIC: Record<string,string[]> = {
+  '焦虑':['你感到焦虑时，身体哪个部位最紧绷？','那股紧绷感像什么形状？有多大？','如果焦虑是一个声音，它在说什么？','深呼吸，那团能量现在变了吗？','这个焦虑要保护你远离什么？'],
+  '疲惫':['你的身体在告诉你什么？','最近有没有好好休息过？','如果给自己放半天假，你最想做什么？','那种疲惫里，有没有藏着一点点委屈？','你上一次什么都不做是什么时候？'],
+  '愤怒':['是什么触发了这团愤怒？','愤怒在保护你的哪条边界？','如果愤怒有颜色，它会是什么？','这团愤怒想让你做什么？','当你允许自己愤怒时，最害怕什么？'],
+  '平静':['这份平静，是什么时候开始的？','这种感觉，以前什么时候有过？','是什么带给你这份平静？','如果你能把这份感觉收藏起来，你会放在哪里？','此刻最让你满足的是什么？'],
+  '孤独':['你感觉到孤独时，最想谁在身边？','这份孤独，是新朋友还没出现，还是旧的人在远去？','有没有某个时刻，孤独感突然消失了？','如果你可以给自己一段陪伴，你会说什么？','一个人待着时，最害怕什么声音？'],
+  '欣喜':['今天有什么具体的事让你这么开心？','这份开心，你想和谁分享？','上一次这么开心是什么时候？','有什么还没来得及庆祝的小事？','这种感觉，你能用什么方式留住它？'],
+  '感恩':['今天你想感谢的第一件事是什么？','有什么人，你很久没说谢谢了？','有没有一件小事，你原本以为理所当然？','如果要给今天写一句感恩的话，你会写什么？','你收到的善意里，哪一份最让你印象深刻？'],
+  '迷茫':['这种迷茫感，是来自选择太多，还是方向不清晰？','如果有一个人能给你指路，你最想问什么？','你内心深处真正想要的是什么？','有什么声音，是你在强迫自己忽略的？','如果把迷茫画成一幅画，你会画什么？'],
+  '期待':['你在期待的那件事，对你意味着什么？','如果它实现了，你的生活会有什么不同？','现在可以做什么，让这个期待更近一步？','有什么恐惧，是藏在期待背后的？','你上一次对未来充满希望是什么时候？'],
+  '释然':['是什么让你放下了？','那个放下的瞬间，是什么感觉？','有什么东西，是你终于可以不再紧握的？','这份释然花了多长时间？','你愿意给自己时间吗？'],
+}
+const GUIDANCE = ['慢慢来，我在这里。','你的感受很重要，试着描述它。','呼吸，感受这个时刻。','对自己温柔一点。','这个感受，没有对错。']
+const MAX_MSGS = 50
+const AWARENESS_VALS = [78,85,72,91,68,83,76,89,94,81]
+
+function RecordModal({ card, onClose }: { card: typeof CARDS[0]; onClose: () => void }) {
+  const [rating, setRating] = useState(0)
+  const [tags, setTags] = useState<string[]>([])
+  const [summary, setSummary] = useState('')
+  const [saved, setSaved] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const defaultSummary = `今天，我在「念起」与念念一起完成了一次情绪觉察。我感受到的是「${card.word}」——${card.guide} 这个时刻，值得被记住。`
+  const handleSave = useCallback(() => {
+    if (!rating) return
+    setSaved(true)
+    const id = setTimeout(onClose, 2200)
+    return () => clearTimeout(id)
+  }, [rating, onClose])
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+        {!saved ? (
+          <>
+            <div className="modal-title"><Sparkles size={16} strokeWidth={2} style={{marginRight:6,verticalAlign:'middle'}}/> 今日觉察</div>
+            <div style={{ display:'flex', gap:12, marginBottom:16 }}>
+              <div style={{ position:'relative', flexShrink:0 }}>
+                <img src={card.cardImg} alt={card.word} style={{ width:70, height:94, objectFit:'cover', borderRadius:14 }} loading="lazy" />
+                <div style={{ position:'absolute',bottom:-6,right:-6,width:22,height:22,borderRadius:'50%',background:CARD_COLORS[card.word],display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,0.2)' }}>{EMOTION_LETTERS[card.word]}</div>
+              </div>
+              <div>
+                <div style={{ fontWeight:700,fontSize:20,color:'var(--text-dark)',marginBottom:4 }}>{card.word}</div>
+                <div style={{ fontSize:12,color:'var(--text-muted)',lineHeight:1.6 }}>{card.guide}</div>
+              </div>
+            </div>
+            <div style={{ fontSize:13,color:'var(--text-muted)',marginBottom:6 }}>这段觉察：</div>
+            <div className="record-summary">
+              {editing ? (
+                <textarea value={summary||defaultSummary} onChange={e=>setSummary(e.target.value)} onBlur={()=>setEditing(false)} autoFocus style={{ width:'100%',minHeight:80,border:'none',outline:'none',background:'transparent',fontSize:14,lineHeight:1.7,color:'var(--text-dark)',resize:'none',fontFamily:'inherit' }} />
+              ) : <div onClick={()=>setEditing(true)} style={{ cursor:'text' }}>{summary||defaultSummary}</div>}
+            </div>
+            <div style={{ fontSize:13,color:'var(--text-muted)',marginBottom:8 }}>今天的心情：</div>
+            <div className="rating-row">{[1,2,3,4,5].map(n=><button key={n} className={`rating-btn ${rating>=n?'selected':''}`} onClick={()=>setRating(n)}>★</button>)}</div>
+            <div style={{ fontSize:13,color:'var(--text-muted)',marginBottom:8 }}>情绪标签：</div>
+            <div className="record-tags">{emotionTags.map(t=><div key={t} className={`tag-chip ${tags.includes(t)?'selected':''}`} onClick={()=>setTags(p=>p.includes(t)?p.filter(x=>x!==t):[...p,t])}>{t}</div>)}</div>
+            <button className="btn-save" onClick={handleSave} disabled={!rating} style={{ opacity:rating?1:0.5 }}>保存到日记</button>
+            <button className="btn-share" onClick={onClose}>取消</button>
+          </>
+        ) : (
+          <div style={{ textAlign:'center',padding:'24px 0' }}>
+            <div style={{ position:'relative',display:'inline-block' }}>
+              <img src={OTTER_GLOW} alt="念念" style={{ width:110,height:110,borderRadius:'50%',objectFit:'cover',animation:'savePop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards' }} />
+              <div className="stone-flash" />
+            </div>
+            <div style={{ fontSize:20,fontWeight:700,color:'var(--text-dark)',marginTop:20 }}>念念已收到 💛</div>
+            <div style={{ fontSize:14,color:'var(--text-muted)',marginTop:10,lineHeight:1.8 }}>你的觉察已保存<br />每一次觉察，都是一次成长。</div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ShareModal({ card, onClose }: { card: typeof CARDS[0]; onClose: () => void }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const c = ref.current
+    if (!c) return
+    const ctx = c.getContext('2d')!
+    const dpr = Math.min(window.devicePixelRatio || 1, 3)
+    c.width = 750 * dpr; c.height = 1100 * dpr
+    ctx.scale(dpr, dpr)
+    const W = 750, H = 1100
+    const g = ctx.createLinearGradient(0,0,0,H)
+    g.addColorStop(0,'#C8DFF0'); g.addColorStop(1,'#D8C8E8')
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H)
+    ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.beginPath(); ctx.arc(610,70,110,0,Math.PI*2); ctx.fill()
+    ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.beginPath(); ctx.arc(120,980,70,0,Math.PI*2); ctx.fill()
+    const img = new Image(); img.crossOrigin = 'anonymous'; img.src = card.cardImg
+    img.onload = () => {
+      ctx.drawImage(img,75,120,600,480)
+      ctx.fillStyle = CARD_COLORS[card.word]||'#E8B4A2'; ctx.font='bold 80px sans-serif'; ctx.textAlign='center'
+      ctx.fillText(card.word, W/2, 680)
+      ctx.fillStyle = '#8E7A72'; ctx.font = '34px sans-serif'
+      ctx.fillText(card.guide, W/2, 760)
+      ctx.strokeStyle = 'rgba(232,180,162,0.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([10,8])
+      ctx.beginPath(); ctx.moveTo(150,810); ctx.lineTo(600,810); ctx.stroke(); ctx.setLineDash([])
+      const ot = new Image(); ot.crossOrigin = 'anonymous'; ot.src = OTTER_DEFAULT
+      ot.onload = () => {
+        ctx.drawImage(ot, W/2-65, 840, 130, 130)
+        ctx.fillStyle = '#B8926C'; ctx.font = '30px sans-serif'; ctx.textAlign = 'center'
+        ctx.fillText('念起 · 觉察即自由', W/2, 1015)
+        ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '22px sans-serif'
+        ctx.fillText('念念陪你每一次觉察', W/2, 1060)
+      }
+    }
+  }, [card])
+  const handle = useCallback(() => {
+    const c = ref.current
+    if (!c) return
+    const a = document.createElement('a')
+    a.download = `念起觉察_${card.word}.png`; a.href = c.toDataURL('image/png'); a.click()
+  }, [card])
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{ maxWidth:420,margin:'0 auto',transform:'translateY(0)',borderRadius:'28px 28px 0 0' }}>
+        <div className="modal-title"><Sparkles size={16} strokeWidth={2} style={{marginRight:6,verticalAlign:'middle'}}/> 分享你的觉察</div>
+        <div style={{ background:'#FEF9F0',borderRadius:20,padding:16,marginBottom:16,display:'flex',justifyContent:'center' }}>
+          <canvas ref={ref} style={{ width:'100%',maxWidth:300,borderRadius:16,boxShadow:'0 8px 32px rgba(0,0,0,0.12)' }} />
+        </div>
+        <button className="btn-save" onClick={handle}>保存到相册</button>
+        <button className="btn-share" onClick={onClose}>取消</button>
+      </div>
+    </div>
+  )
+}
+
+function BottomNav({ current, onSwitch }: { current: Page; onSwitch: (p: Page) => void }) {
+  if (current==='splash'||current==='chat'||current==='onboard') return null
+  return (
+    <div className="bottom-nav">
+      {[
+        {Icon:Home,label:'首页',key:'home' as Page},
+        {Icon:BookOpen,label:'日记本',key:'journal' as Page},
+        {Icon:User,label:'我的',key:'profile' as Page},
+      ].map(item=>(
+        <div key={item.key} className={`nav-item ${current===item.key?'active':''}`} onClick={()=>onSwitch(item.key)}>
+          <div className="nav-icon"><item.Icon size={20} strokeWidth={2} /></div>
+          <div className="nav-label">{item.label}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export default function App() {
+  const [page, setPage] = useState<Page>('splash')
+  const [cardIdx, setCardIdx] = useState(0)
+  const [msgs, setMsgs] = useState<{role:'ai'|'user';text:string}[]>([])
+  const [input, setInput] = useState('')
+  const [typing, setTyping] = useState(false)
+  const [showRecord, setShowRecord] = useState(false)
+  const [showShare, setShowShare] = useState(false)
+  const [showHug, setShowHug] = useState(false)
+  const [hugIdx, setHugIdx] = useState(()=>Math.floor(Math.random()*HUG_MESSAGES.length))
+  const [changing, setChanging] = useState(false)
+  const [splashFrame, setSplashFrame] = useState(0)
+  const [showTip, setShowTip] = useState(false)
+  const [otterMood, setOtterMood] = useState(OTTER_DEFAULT)
+  const [darkMode, setDarkMode] = useState(false)
+  const [onboardIdx, setOnboardIdx] = useState(0)
+  const endRef = useRef<HTMLDivElement>(null)
+  const tipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const sendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (page !== 'splash') return
+    const t = setInterval(() => setSplashFrame(f => (f+1)%SPLASH_FRAMES.length), 1800)
+    return () => clearInterval(t)
+  }, [page])
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [msgs, typing])
+
+  useEffect(() => {
+    if (page !== 'chat' || msgs.length === 0) return
+    if (tipTimerRef.current) clearTimeout(tipTimerRef.current)
+    tipTimerRef.current = setTimeout(() => setShowTip(true), 15000)
+    return () => { if (tipTimerRef.current) clearTimeout(tipTimerRef.current) }
+  }, [page, msgs.length])
+
+  const startChat = useCallback(() => {
+    const card = CARDS[cardIdx]
+    const reps = SOCRATIC[card.word] || GUIDANCE
+    setMsgs([{ role:'ai', text: reps[0] }])
+    setOtterMood(OTTER_CURIOUS)
+    setShowTip(false)
+  }, [cardIdx])
+
+  const handleSend = useCallback(() => {
+    if (!input.trim()) return
+    const text = input.trim()
+    setMsgs(prev => {
+      const next: {role:'ai'|'user';text:string}[] = [...prev, { role:'user' as const, text }]
+      if (next.length > MAX_MSGS) return next.slice(Math.floor(MAX_MSGS/3))
+      return next
+    })
+    setInput(''); setTyping(true); setShowTip(false)
+    if (sendTimerRef.current) clearTimeout(sendTimerRef.current)
+    sendTimerRef.current = setTimeout(() => {
+      setTyping(false)
+      const card = CARDS[cardIdx]
+      const reps = SOCRATIC[card.word] || GUIDANCE
+      setMsgs(prev => {
+        const next: {role:'ai'|'user';text:string}[] = [...prev, { role:'ai' as const, text: reps[Math.floor(Math.random()*reps.length)] }]
+        if (next.length > MAX_MSGS) return next.slice(Math.floor(MAX_MSGS/3))
+        return next
+      })
+      setOtterMood(Math.random()>0.4 ? OTTER_CURIOUS : OTTER_DEFAULT)
+    }, 1500 + Math.random()*400)
+  }, [input, cardIdx])
+
+  const handleNext = useCallback(() => {
+    setChanging(true)
+    const t = setTimeout(() => { setCardIdx(i => (i+1)%CARDS.length); setChanging(false) }, 220)
+    return () => clearTimeout(t)
+  }, [])
+
+  const enterChat = useCallback(() => { setPage('chat'); startChat() }, [startChat])
+
+  const awarenessValue = useMemo(() => AWARENESS_VALS[cardIdx % AWARENESS_VALS.length], [cardIdx])
+
+  const card = CARDS[cardIdx]
+  const weekData = [{l:'一',v:3},{l:'二',v:4},{l:'三',v:2},{l:'四',v:5},{l:'五',v:3},{l:'六',v:4},{l:'日',v:3}]
+  const maxV = Math.max(...weekData.map(d=>d.v))
+  const colorKeys = ['焦虑','疲惫','愤怒','平静','欣喜','孤独','感恩','迷茫','期待','释然']
+
+  if (page === 'splash') {
+    return (
+      <div className="splash">
+        <div className="splash-moon"/><div className="splash-water"/>
+        <img key={splashFrame} className="splash-otter" src={SPLASH_FRAMES[splashFrame]} alt="念念" style={{animation:'splashFrameIn 0.9s ease forwards'}} />
+        <div className="splash-brand"><h1>念起</h1><p>觉察即自由</p></div>
+        <button className="splash-enter" onClick={()=>setPage('onboard')}>开启觉察之旅</button>
+        <div className="splash-disclaimer"><p>「念起」不替代专业心理咨询。如有严重心理困扰，请寻求专业帮助。</p></div>
+      </div>
+    )
+  }
+
+  if (page === 'onboard') {
+    const step = ONBOARD_STEPS[onboardIdx]
+    return (
+      <div className="onboard-page">
+        <div className="onboard-img-wrap">
+          <img key={onboardIdx} src={step.img} alt={step.title} className="onboard-img" style={{animation:'onboardImgIn 0.5s ease forwards'}} loading="lazy" />
+        </div>
+        <div className="onboard-title">{step.title}</div>
+        <div className="onboard-sub">{step.sub}</div>
+        <div className="onboard-dots">
+          {ONBOARD_STEPS.map((_,i)=><div key={i} className={`onboard-dot ${i===onboardIdx?'active':''}`}/>)}
+        </div>
+        <div className="onboard-actions">
+          {onboardIdx < ONBOARD_STEPS.length-1 ? (
+            <><button className="btn-ghost" style={{flex:1}} onClick={()=>setPage('home')}>跳过</button>
+               <button className="btn-primary" style={{flex:2}} onClick={()=>setOnboardIdx(i=>i+1)}>继续</button></>
+          ) : (
+            <button className="btn-primary" style={{flex:1}} onClick={()=>setPage('home')}>开始使用</button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={`app-container ${darkMode?'dark-mode':''}`}>
+      {page !== 'chat' && (
+        <img className="otter-float" src={OTTER_DEFAULT} alt="戳戳念念"
+          onClick={()=>{ setShowHug(true); setHugIdx(Math.floor(Math.random()*HUG_MESSAGES.length)) }} />
+      )}
+
+      {page === 'home' && (
+        <div className="page-enter">
+          <div className="status-bar">
+            <div className="status-icon" onClick={()=>setDarkMode(d=>!d)}>{darkMode?<Sun size={16} strokeWidth={2}/>:<Moon size={16} strokeWidth={2}/>}</div>
+            <span className="status-date">6月11日 周四</span>
+            <div className="status-icon" onClick={()=>setPage('journal')}><Calendar size={16} strokeWidth={2}/></div>
+          </div>
+          <div className="home-page">
+            <div className="home-greeting">下午好，朋友</div>
+            <div className={`card-container ${changing?'card-out':'card-in'}`}>
+              <div className="emotion-card" onClick={enterChat} style={{cursor:'pointer'}}>
+                <div style={{position:'relative',width:'100%',height:215,borderRadius:16,overflow:'hidden',marginBottom:20}}>
+                  <img src={card.cardImg} alt={card.word} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{(e.currentTarget as HTMLImageElement).style.display='none'}} loading="lazy" />
+                  <div style={{position:'absolute',inset:0,background:`linear-gradient(160deg,${CARD_COLORS[card.word]}cc,${CARD_COLORS[card.word]}99)`,display:'flex',alignItems:'center',justifyContent:'center'}}><div className="card-art-orb"/></div>
+                  <div style={{position:'absolute',top:12,right:12,background:'rgba(255,255,255,0.93)',borderRadius:20,padding:'4px 12px',fontSize:11,fontWeight:700,color:CARD_COLORS[card.word]}}>{EMOTION_LETTERS[card.word]} {card.word}</div>
+                  <div style={{position:'absolute',bottom:12,left:12,background:'rgba(255,255,255,0.7)',borderRadius:12,padding:'6px 14px',fontSize:12,color:'var(--text-dark)',backdropFilter:'blur(8px)'}}>觉察值 {awarenessValue}%</div>
+                </div>
+                <div className="card-emotion-word" style={{letterSpacing:6}}>{card.word}</div>
+                <div className="card-guide">{card.guide}</div>
+                <div className="card-hint">▼ 点击探索内心</div>
+              </div>
+            </div>
+            <div className="card-actions">
+              <button className="btn-primary" onClick={enterChat}>探索这张卡</button>
+              <button className="btn-ghost" onClick={handleNext}>换一张</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {page === 'chat' && (
+        <div className="chat-page page-enter">
+          <div className="chat-header">
+            <div style={{display:'flex',alignItems:'center',gap:4}}><ArrowLeft size={20} strokeWidth={2} style={{cursor:'pointer'}} onClick={()=>setPage('home')}/></div>
+            <div className="chat-header-card" onClick={()=>setPage('home')}>
+              <img src={card.cardImg} alt={card.word} style={{width:40,height:40,objectFit:'cover',borderRadius:10}} loading="lazy" />
+              <span style={{fontWeight:600}}>{card.word}</span>
+            </div>
+            <img src={otterMood} alt="念念" style={{width:40,height:40,borderRadius:'50%',objectFit:'cover',flexShrink:0,boxShadow:'0 2px 8px rgba(201,168,130,0.3)'}} />
+          </div>
+          <div className="chat-messages">
+            {msgs.map((m,i)=>(
+              <div key={i} className={`msg-wrap ${m.role==='user'?'user':''}`}>
+                {m.role==='ai'&&<img src={otterMood} alt="念念" className="msg-otter-sm"/>}
+                <div className={`msg-bubble ${m.role==='ai'?'ai':'user-msg'}`}>{m.text}</div>
+              </div>
+            ))}
+            {typing&&(
+              <div className="msg-wrap">
+                <img src={OTTER_CURIOUS} alt="念念" className="msg-otter-sm"/>
+                <div className="typing-indicator"><div className="typing-dot"/><div className="typing-dot"/><div className="typing-dot"/></div>
+              </div>
+            )}
+            {msgs.length>=3&&!showRecord&&(
+              <div style={{display:'flex',justifyContent:'center',marginTop:8}}>
+                <button className="btn-primary" style={{padding:'10px 28px',fontSize:14}} onClick={()=>setShowRecord(true)}><Sparkles size={14} strokeWidth={2} style={{marginRight:4,verticalAlign:'middle'}}/> 生成今日觉察</button>
+              </div>
+            )}
+            <div ref={endRef}/>
+          </div>
+          {showTip&&(<div className="otter-tip-bubble">{GUIDANCE[Math.floor(Math.random()*GUIDANCE.length)]}</div>)}
+          <div className="chat-input-bar">
+            <input className="chat-input" placeholder="慢慢来，我在听……" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleSend()}/>
+            <button className="chat-send" onClick={handleSend}>↑</button>
+          </div>
+        </div>
+      )}
+
+      {page === 'journal' && (
+        <div className="journal-page page-enter">
+          <div className="journal-header">
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <div className="status-icon" onClick={()=>setPage('home')} style={{padding:4}}><ArrowLeft size={20} strokeWidth={2}/></div>
+              <div style={{fontSize:22,fontWeight:700,color:'var(--text-dark)'}}>日记本</div>
+            </div>
+            <div className="week-chart">
+              <div className="week-chart-title">近7天情绪趋势</div>
+              <div style={{display:'flex',alignItems:'flex-end',gap:8,height:64,paddingTop:4}}>
+                {weekData.map((d,i)=>{
+                  const barH = Math.max(4, Math.round((d.v/maxV)*54))
+                  return (
+                  <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
+                    <div style={{width:'100%',borderRadius:6,height:barH+'px',background:'linear-gradient(180deg,'+CARD_COLORS[colorKeys[i%10]]+'cc,'+CARD_COLORS[colorKeys[i%10]]+'40)',transition:'height 0.5s ease'}}/>
+                    <div className="chart-label">{d.l}</div>
+                  </div>
+                )})}
+              </div>
+            </div>
+          </div>
+          <div className="journal-list">
+            {[{id:1,date:'6月10日',day:'周二',emotion:'焦虑',rating:3,preview:'胸口有点闷，深呼吸之后稍微缓解了一些。下午开完会感觉整个人都被掏空了，需要早点休息。'},{id:2,date:'6月9日',day:'周一',emotion:'平静',rating:4,preview:'今天睡了个好觉，醒来觉得世界都亮了一些。下午独自去公园散步，发现自己很久没有这样慢下来了。'},{id:3,date:'6月7日',day:'周六',emotion:'欣喜',rating:5,preview:'收到了好朋友的礼物，是一本想了很久的书。这个世界上还有人会记得你喜欢什么，真的很温暖。'},{id:4,date:'6月5日',day:'周四',emotion:'疲惫',rating:2,preview:'连轴转了三天，感觉身体在抗议。下周要给自己放一天假，什么都不做，只是休息。'}].map(item=>(
+              <div key={item.id} className="journal-item">
+                <div style={{display:'flex',gap:12,alignItems:'stretch'}}>
+                  <div style={{width:5,borderRadius:3,flexShrink:0,background:CARD_COLORS[item.emotion]}}/>
+                  <div style={{flex:1}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <span style={{fontSize:12,fontWeight:600,color:'var(--text-dark)'}}>{item.date} {item.day}</span>
+                        <span style={{fontSize:12,padding:'2px 10px',borderRadius:20,background:`${CARD_COLORS[item.emotion]}25`,color:CARD_COLORS[item.emotion],fontWeight:600}}>{EMOTION_LETTERS[item.emotion]} {item.emotion}</span>
+                      </div>
+                      <span style={{fontSize:12,color:'var(--accent-warm)',letterSpacing:1}}>{'★'.repeat(item.rating)}{'☆'.repeat(5-item.rating)}</span>
+                    </div>
+                    <div style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{item.preview}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {page === 'profile' && (
+        <div className="profile-page page-enter">
+          <div className="status-bar">
+            <div className="status-icon" onClick={()=>setPage('home')}><ArrowLeft size={20} strokeWidth={2}/></div>
+            <span className="status-date">我的</span>
+            <div className="status-icon" onClick={()=>setDarkMode(d=>!d)}>{darkMode?<Sun size={16} strokeWidth={2}/>:<Moon size={16} strokeWidth={2}/>}</div>
+          </div>
+          <div className="profile-header">
+            <div style={{position:'relative',marginBottom:12}}>
+              <img src={OTTER_GLOW} alt="念念" style={{width:72,height:72,borderRadius:'50%',objectFit:'cover',boxShadow:'0 0 30px rgba(255,229,180,0.6)'}}/>
+              <div style={{position:'absolute',bottom:-2,right:-2,width:26,height:26,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent-warm),var(--accent-green))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#fff',fontWeight:700}}>念</div>
+            </div>
+            <div className="profile-name">朋友</div>
+            <div className="profile-edit">编辑昵称 ›</div>
+          </div>
+          <button className="profile-hug-btn" onClick={()=>setShowHug(true)}>🤗 抱抱念念</button>
+          <div className="profile-list">
+            {([
+              { Icon:Star, label:'我的收藏' },
+              { Icon:Share2, label:'分享App', onShare:true },
+              { Icon:Moon, label:'深色模式', onDark:true },
+              { Icon:FileText, label:'免责声明与隐私政策' },
+              { Icon:Phone, label:'联系客服' },
+            ] as {Icon:React.FC<{size?:number;strokeWidth?:number}>;label:string;onShare?:boolean;onDark?:boolean}[]).map((item,i)=>(
+              <div key={i} className="profile-list-item"
+                onClick={()=>{ if (item.onShare) setShowShare(true); if (item.onDark) setDarkMode(d=>!d) }}
+                style={{cursor:item.onShare||item.onDark?'pointer':'default'}}>
+                <div className="list-icon"><item.Icon size={18} strokeWidth={2}/></div>
+                <div className="list-label">{item.label}</div>
+                <div className="list-arrow">›</div>
+              </div>
+            ))}
+          </div>
+          <div style={{textAlign:'center',marginTop:24,color:'var(--text-muted)',fontSize:12}}>念起 · 觉察即自由</div>
+        </div>
+      )}
+
+      <BottomNav current={page} onSwitch={setPage}/>
+
+      {showHug&&(
+        <div className="modal-overlay" onClick={()=>setShowHug(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex',justifyContent:'center',marginBottom:16}}>
+              <img src={OTTER_GLOW} alt="念念" style={{width:110,height:110,borderRadius:'50%',objectFit:'cover',boxShadow:'0 0 40px rgba(255,229,180,0.7)',animation:'otterFloat 3s ease-in-out infinite'}}/>
+            </div>
+            <div className="modal-title"><Heart size={16} strokeWidth={2} style={{marginRight:6,verticalAlign:'middle'}}/> 念念说：</div>
+            <div className="hug-message">{HUG_MESSAGES[hugIdx]}</div>
+            <div style={{display:'flex',gap:10}}>
+              <button className="btn-ghost" style={{flex:1}} onClick={()=>setHugIdx(i=>(i+1)%HUG_MESSAGES.length)}>再听一句</button>
+              <button className="btn-save" style={{flex:2}} onClick={()=>setShowHug(false)}>谢谢念念 💛</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRecord&&<RecordModal card={card} onClose={()=>setShowRecord(false)}/>}
+      {showShare&&<ShareModal card={card} onClose={()=>setShowShare(false)}/>}
+    </div>
+  )
+}
