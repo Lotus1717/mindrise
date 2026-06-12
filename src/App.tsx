@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import './index.css'
+import { storageGet, storageSet } from './storage'
 import { CARDS, HUG_MESSAGES, emotionTags } from './data'
 import {
   Home, BookOpen, User, Share2, Moon, Sun,
@@ -98,7 +99,7 @@ function RecordModal({ card, onClose, onSave }: { card: typeof CARDS[0]; onClose
             <div className="modal-title"><Sparkles size={16} strokeWidth={2} style={{marginRight:6,verticalAlign:'middle'}}/> 今日觉察</div>
             <div style={{ display:'flex', gap:12, marginBottom:16 }}>
               <div style={{ position:'relative', flexShrink:0 }}>
-                <img src={card.cardImg} alt={card.word} style={{ width:70, height:94, objectFit:'cover', borderRadius:14 }} loading="lazy" />
+                <img decoding="async" src={card.cardImg} alt={card.word} style={{ width:70, height:94, objectFit:'cover', borderRadius:14 }} loading="lazy" />
                 <div style={{ position:'absolute',bottom:-6,right:-6,width:22,height:22,borderRadius:'50%',background:CARD_COLORS[card.word],display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,0.2)' }}>{EMOTION_LETTERS[card.word]}</div>
               </div>
               <div>
@@ -122,7 +123,7 @@ function RecordModal({ card, onClose, onSave }: { card: typeof CARDS[0]; onClose
         ) : (
           <div style={{ textAlign:'center',padding:'24px 0' }}>
             <div style={{ position:'relative',display:'inline-block' }}>
-              <img src={OTTER_GLOW} alt="念念" style={{ width:110,height:110,borderRadius:'50%',objectFit:'cover',animation:'savePop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards' }} />
+              <img decoding="async" loading="lazy" src={OTTER_GLOW} alt="念念" style={{ width:110,height:110,borderRadius:'50%',objectFit:'cover',animation:'savePop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards' }} />
               <div className="stone-flash" />
             </div>
             <div style={{ fontSize:20,fontWeight:700,color:'var(--text-dark)',marginTop:20 }}>念念已收到 💛</div>
@@ -295,16 +296,13 @@ export default function App() {
   const [showTip, setShowTip] = useState(false)
   const [tipIdx, setTipIdx] = useState(0)
   const [otterMood, setOtterMood] = useState(OTTER_DEFAULT)
-  const [darkMode, setDarkMode] = useState(()=>localStorage.getItem('mindrise-dark')==='1')
+  const [darkMode, setDarkMode] = useState(false)
   const [onboardIdx, setOnboardIdx] = useState(0)
-  const [userName, setUserName] = useState(()=>localStorage.getItem('mindrise-name')||'朋友')
+  const [onboarded, setOnboarded] = useState(false)
+  const [userName, setUserName] = useState('朋友')
   const [expandedJournal, setExpandedJournal] = useState<string | null>(null)
-  const [chatHistory, setChatHistory] = useState<Record<number, {role:'ai'|'user';text:string}[]>>(()=>{
-    try { return JSON.parse(localStorage.getItem('mindrise-chat')||'{}') } catch { return {} }
-  })
-  const [journal, setJournal] = useState<JournalItem[]>(()=>{
-    try { return JSON.parse(localStorage.getItem('mindrise-journal')||'[]') } catch { return [] }
-  })
+  const [chatHistory, setChatHistory] = useState<Record<number, {role:'ai'|'user';text:string}[]>>({})
+  const [journal, setJournal] = useState<JournalItem[]>([])
   const endRef = useRef<HTMLDivElement>(null)
   const tipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -315,10 +313,28 @@ export default function App() {
     return () => clearInterval(t)
   }, [page])
 
-  useEffect(() => { localStorage.setItem('mindrise-dark', darkMode?'1':'0') }, [darkMode])
-  useEffect(() => { localStorage.setItem('mindrise-name', userName) }, [userName])
-  useEffect(() => { localStorage.setItem('mindrise-journal', JSON.stringify(journal)) }, [journal])
-  useEffect(() => { localStorage.setItem('mindrise-chat', JSON.stringify(chatHistory)) }, [chatHistory])
+  // 从原生存储加载持久化数据
+  useEffect(() => {
+    (async () => {
+      const [dark, name, onboard, j, chat] = await Promise.all([
+        storageGet<string>('mindrise-dark'),
+        storageGet<string>('mindrise-name'),
+        storageGet<string>('nianqi-onboarded'),
+        storageGet<JournalItem[]>('mindrise-journal'),
+        storageGet<Record<number, {role:'ai'|'user';text:string}[]>>('mindrise-chat'),
+      ])
+      if (dark !== null) setDarkMode(dark === '1')
+      if (name !== null) setUserName(name)
+      if (onboard !== null) setOnboarded(true)
+      if (j) setJournal(j)
+      if (chat) setChatHistory(chat)
+    })()
+  }, [])
+
+  useEffect(() => { storageSet('mindrise-dark', darkMode?'1':'0') }, [darkMode])
+  useEffect(() => { storageSet('mindrise-name', userName) }, [userName])
+  useEffect(() => { storageSet('mindrise-journal', journal) }, [journal])
+  useEffect(() => { storageSet('mindrise-chat', chatHistory) }, [chatHistory])
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -408,7 +424,7 @@ export default function App() {
         <img key={splashFrame} className="splash-otter" src={SPLASH_FRAMES[splashFrame]} alt="念念" style={{animation:'splashFrameIn 0.9s ease forwards'}} />
         <div className="splash-brand"><h1>念起</h1><p>觉察即自由</p></div>
         <button className="splash-enter" onClick={()=>{
-          setPage(localStorage.getItem('nianqi-onboarded') ? 'home' : 'onboard')
+          setPage(onboarded ? 'home' : 'onboard')
         }}>开启觉察之旅</button>
         <div className="splash-disclaimer"><p>「念起」不替代专业心理咨询。如有严重心理困扰，请寻求专业帮助。</p></div>
       </div>
@@ -429,10 +445,10 @@ export default function App() {
         </div>
         <div className="onboard-actions">
           {onboardIdx < ONBOARD_STEPS.length-1 ? (
-            <><button className="btn-ghost" style={{flex:1}} onClick={()=>{ localStorage.setItem('nianqi-onboarded','1'); setPage('home') }}>跳过</button>
+            <><button className="btn-ghost" style={{flex:1}} onClick={()=>{ setOnboarded(true); storageSet('nianqi-onboarded','1'); setPage('home') }}>跳过</button>
                <button className="btn-primary" style={{flex:2}} onClick={()=>setOnboardIdx(i=>i+1)}>继续</button></>
           ) : (
-            <button className="btn-primary" style={{flex:1}} onClick={()=>{ localStorage.setItem('nianqi-onboarded','1'); setPage('home') }}>开始使用</button>
+            <button className="btn-primary" style={{flex:1}} onClick={()=>{ setOnboarded(true); storageSet('nianqi-onboarded','1'); setPage('home') }}>开始使用</button>
           )}
         </div>
       </div>
@@ -458,7 +474,7 @@ export default function App() {
             <div className={`card-container ${changing?'card-out':'card-in'}`}>
               <div className="emotion-card" onClick={enterChat} style={{cursor:'pointer'}}>
                 <div style={{position:'relative',width:'100%',height:215,borderRadius:16,overflow:'hidden',marginBottom:20}}>
-                  <img src={card.cardImg} alt={card.word} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{(e.currentTarget as HTMLImageElement).style.display='none'}} loading="lazy" />
+                  <img decoding="async" src={card.cardImg} alt={card.word} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{(e.currentTarget as HTMLImageElement).style.display='none'}} loading="lazy" />
                   <div style={{position:'absolute',inset:0,background:`linear-gradient(160deg,${CARD_COLORS[card.word]}cc,${CARD_COLORS[card.word]}99)`,display:'flex',alignItems:'center',justifyContent:'center'}}><div className="card-art-orb"/></div>
                 </div>
                 <div className="card-emotion-word" style={{letterSpacing:6}}>{card.word}</div>
@@ -479,21 +495,21 @@ export default function App() {
           <div className="chat-header">
             <div style={{display:'flex',alignItems:'center',gap:4}}><ArrowLeft size={20} strokeWidth={2} style={{cursor:'pointer'}} onClick={()=>setPage('home')}/></div>
             <div className="chat-header-card" onClick={()=>setPage('home')}>
-              <img src={card.cardImg} alt={card.word} style={{width:40,height:40,objectFit:'cover',borderRadius:10}} loading="lazy" />
+              <img decoding="async" src={card.cardImg} alt={card.word} style={{width:40,height:40,objectFit:'cover',borderRadius:10}} loading="lazy" />
               <span style={{fontWeight:600}}>{card.word}</span>
             </div>
-            <img src={otterMood} alt="念念" style={{width:40,height:40,borderRadius:'50%',objectFit:'cover',flexShrink:0,boxShadow:'0 2px 8px rgba(201,168,130,0.3)'}} />
+            <img decoding="async" src={otterMood} alt="念念" style={{width:40,height:40,borderRadius:'50%',objectFit:'cover',flexShrink:0,boxShadow:'0 2px 8px rgba(201,168,130,0.3)'}} />
           </div>
           <div className="chat-messages">
             {msgs.map((m,i)=>(
               <div key={i} className={`msg-wrap ${m.role==='user'?'user':''}`}>
-                {m.role==='ai'&&<img src={otterMood} alt="念念" className="msg-otter-sm"/>}
+                {m.role==='ai'&&<img decoding="async" src={otterMood} alt="念念" className="msg-otter-sm"/>}
                 <div className={`msg-bubble ${m.role==='ai'?'ai':'user-msg'}`}>{m.text}</div>
               </div>
             ))}
             {typing&&(
               <div className="msg-wrap">
-                <img src={OTTER_CURIOUS} alt="念念" className="msg-otter-sm"/>
+                <img decoding="async" src={OTTER_CURIOUS} alt="念念" className="msg-otter-sm"/>
                 <div className="typing-indicator"><div className="typing-dot"/><div className="typing-dot"/><div className="typing-dot"/></div>
               </div>
             )}
@@ -565,7 +581,7 @@ export default function App() {
                         )}
                         {item.cardImg && (
                           <div style={{display:'flex',alignItems:'center',gap:10,fontSize:12,color:'var(--text-muted)'}}>
-                            <img src={item.cardImg} alt="" style={{width:36,height:48,objectFit:'cover',borderRadius:8}} loading="lazy"/>
+                            <img decoding="async" src={item.cardImg} alt="" style={{width:36,height:48,objectFit:'cover',borderRadius:8}} loading="lazy"/>
                             <span>来自「{item.emotion}」卡牌</span>
                           </div>
                         )}
@@ -590,7 +606,7 @@ export default function App() {
           </div>
           <div className="profile-header">
             <div style={{position:'relative',marginBottom:12}}>
-              <img src={OTTER_GLOW} alt="念念" style={{width:72,height:72,borderRadius:'50%',objectFit:'cover',boxShadow:'0 0 30px rgba(255,229,180,0.6)'}}/>
+              <img decoding="async" loading="lazy" src={OTTER_GLOW} alt="念念" style={{width:72,height:72,borderRadius:'50%',objectFit:'cover',boxShadow:'0 0 30px rgba(255,229,180,0.6)'}}/>
               <div style={{position:'absolute',bottom:-2,right:-2,width:26,height:26,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent-warm),var(--accent-green))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#fff',fontWeight:700}}>念</div>
             </div>
             <div className="profile-name">{userName}</div>
@@ -622,7 +638,7 @@ export default function App() {
         <div className="modal-overlay" onClick={()=>setShowHug(false)}>
           <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
             <div style={{display:'flex',justifyContent:'center',marginBottom:16}}>
-              <img src={OTTER_GLOW} alt="念念" style={{width:110,height:110,borderRadius:'50%',objectFit:'cover',boxShadow:'0 0 40px rgba(255,229,180,0.7)',animation:'otterFloat 3s ease-in-out infinite'}}/>
+              <img decoding="async" src={OTTER_GLOW} alt="念念" style={{width:110,height:110,borderRadius:'50%',objectFit:'cover',boxShadow:'0 0 40px rgba(255,229,180,0.7)',animation:'otterFloat 3s ease-in-out infinite'}}/>
             </div>
             <div className="modal-title"><Heart size={16} strokeWidth={2} style={{marginRight:6,verticalAlign:'middle'}}/> 念念说：</div>
             <div className="hug-message">{HUG_MESSAGES[hugIdx]}</div>
@@ -638,7 +654,7 @@ export default function App() {
         <div className="modal-overlay" onClick={()=>setShowAbout(false)}>
           <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{textAlign:'center',padding:'28px 24px'}}>
             <div style={{display:'flex',justifyContent:'center',marginBottom:16}}>
-              <img src={OTTER_GLOW} alt="念起" style={{width:80,height:80,borderRadius:'50%',objectFit:'cover',boxShadow:'0 0 30px rgba(255,229,180,0.6)'}}/>
+              <img decoding="async" loading="lazy" src={OTTER_GLOW} alt="念起" style={{width:80,height:80,borderRadius:'50%',objectFit:'cover',boxShadow:'0 0 30px rgba(255,229,180,0.6)'}}/>
             </div>
             <div style={{fontSize:22,fontWeight:700,color:'var(--text-dark)',marginBottom:4}}>念起</div>
             <div style={{fontSize:12,color:'var(--text-muted)',letterSpacing:2,marginBottom:18}}>MINDRISE · v1.0</div>

@@ -7,8 +7,19 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>念起 — 觉察即自由</title>
+    <!-- 预加载关键图片，避免首屏卡顿 -->
+    <link rel="preload" as="image" href="/otter-frames/splash-1.png" />
+    <link rel="preload" as="image" href="/otter-frames/splash-2.png" />
+    <link rel="preload" as="image" href="/otter-frames/splash-3.png" />
+    <link rel="preload" as="image" href="/otter-frames/otter-happy.png" />
+    <link rel="preload" as="image" href="/otter-frames/otter-glow.png" />
+    <link rel="preload" as="image" href="/otter-frames/otter-curious.png" />
     <style>
       html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #FEF9F0; }
+      /* 图片占位脉冲动画 */
+      img { background: #F2EDE5; }
+      @keyframes imgShimmer { 0% { background-position: -200px 0; } 100% { background-position: calc(200px + 100%) 0; } }
+      img[loading="lazy"] { background: linear-gradient(90deg, #F2EDE5 25%, #E8E0D5 50%, #F2EDE5 75%); background-size: 200px 100%; animation: imgShimmer 2s ease-in-out infinite; }
     </style>
   </head>
   <body>
