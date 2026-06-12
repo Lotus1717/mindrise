@@ -60,6 +60,8 @@ const SOCRATIC: Record<string,string[]> = {
 const GUIDANCE = ['慢慢来，我在这里。','你的感受很重要，试着描述它。','呼吸，感受这个时刻。','对自己温柔一点。','这个感受，没有对错。']
 const MAX_MSGS = 50
 const AWARENESS_VALS = [78,85,72,91,68,83,76,89,94,81]
+const MOOD_EMOJI = ['', '😣', '😔', '😐', '🙂', '💛']
+const MOOD_LABELS = ['', '低落', '不好', '还好', '不错', '超棒']
 
 function RecordModal({ card, onClose, onSave }: { card: typeof CARDS[0]; onClose: () => void; onSave: (item: JournalItem) => void }) {
   const [rating, setRating] = useState(0)
@@ -108,8 +110,8 @@ function RecordModal({ card, onClose, onSave }: { card: typeof CARDS[0]; onClose
                 <textarea value={summary||defaultSummary} onChange={e=>setSummary(e.target.value)} onBlur={()=>setEditing(false)} autoFocus style={{ width:'100%',minHeight:80,border:'none',outline:'none',background:'transparent',fontSize:14,lineHeight:1.7,color:'var(--text-dark)',resize:'none',fontFamily:'inherit' }} />
               ) : <div onClick={()=>setEditing(true)} style={{ cursor:'text' }}>{summary||defaultSummary}</div>}
             </div>
-            <div style={{ fontSize:13,color:'var(--text-muted)',marginBottom:8 }}>今天的心情：</div>
-            <div className="rating-row">{[1,2,3,4,5].map(n=><button key={n} className={`rating-btn ${rating>=n?'selected':''}`} onClick={()=>setRating(n)}>★</button>)}</div>
+            <div style={{ fontSize:13,color:'var(--text-muted)',marginBottom:8 }}>{rating ? `心情：${MOOD_EMOJI[rating]} ${MOOD_LABELS[rating]}` : '选一颗心情，代表今天的状态 →'}</div>
+            <div className="rating-row">{[1,2,3,4,5].map(n=><button key={n} className={`rating-btn emoji ${rating===n?'selected-emoji':''}`} style={{opacity:rating&&rating!==n?0.35:1}} onClick={()=>setRating(rating===n?0:n)}>{MOOD_EMOJI[n]}</button>)}</div>
             <div style={{ fontSize:13,color:'var(--text-muted)',marginBottom:8 }}>情绪标签：</div>
             <div className="record-tags">{emotionTags.map(t=><div key={t} className={`tag-chip ${selTags.includes(t)?'selected':''}`} onClick={()=>setSelTags(p=>p.includes(t)?p.filter(x=>x!==t):[...p,t])}>{t}</div>)}</div>
             <button className="btn-save" onClick={handleSave} style={{ opacity:1 }}>保存到日记</button>
@@ -458,7 +460,9 @@ export default function App() {
                         <span style={{fontSize:12,fontWeight:600,color:'var(--text-dark)'}}>{item.date} {item.day}</span>
                         <span style={{fontSize:12,padding:'2px 10px',borderRadius:20,background:`${CARD_COLORS[item.emotion]}25`,color:CARD_COLORS[item.emotion],fontWeight:600}}>{EMOTION_LETTERS[item.emotion]} {item.emotion}</span>
                       </div>
-                      <span style={{fontSize:12,color:item.rating?'var(--accent-warm)':'var(--text-muted)',letterSpacing:1}}>{item.rating ? '★'.repeat(item.rating)+'☆'.repeat(5-item.rating) : '未评分'}</span>
+                      <span style={{fontSize:12,color:item.rating?'var(--text-dark)':'var(--text-muted)',letterSpacing:1}}>
+                        {item.rating ? `${MOOD_EMOJI[item.rating]} ${MOOD_LABELS[item.rating]}` : '未评分'}
+                      </span>
                     </div>
                     <div style={{fontSize:13,color:'var(--text-muted)',lineHeight:1.7,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{item.summary}</div>
                   </div>
