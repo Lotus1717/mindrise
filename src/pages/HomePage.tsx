@@ -44,13 +44,15 @@ export function HomePage({
         <div className="status-icon" onClick={onGoJournal}><Calendar size={16} strokeWidth={2} /></div>
       </div>
       <div className="home-page">
-        <div className="home-greeting">{getTimeGreeting()}，{userName}</div>
-        {streakText && (
-          <div className="streak-banner">
-            <Flame size={16} strokeWidth={2} />
-            <span>{streakText}</span>
-          </div>
-        )}
+        <div className="home-greeting-row">
+          <div className="home-greeting">{getTimeGreeting()}，{userName}</div>
+          {streakText && (
+            <div className="streak-banner streak-banner--inline">
+              <Flame size={14} strokeWidth={2} />
+              <span>{streakText}</span>
+            </div>
+          )}
+        </div>
         {todayEntry && (
           <div className="today-done-banner">
             <span className="today-done-check">✓</span>

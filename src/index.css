@@ -106,7 +106,27 @@ body {
 
 /* ─── 首页 ─── */
 .home-page { padding: 8px 24px 24px; }
-.home-greeting { font-size: 22px; font-weight: 600; color: var(--text-dark); margin-bottom: 12px; }
+.home-greeting-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 16px; min-height: 32px;
+}
+.home-greeting {
+  font-size: 22px; font-weight: 600; color: var(--text-dark);
+  flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.streak-banner {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; margin: 0 0 16px; border-radius: 20px;
+  font-size: 13px; font-weight: 600; color: #8B5A3C;
+  background: linear-gradient(135deg, rgba(255,229,180,0.45), rgba(232,180,162,0.25));
+  border: 1px solid rgba(232,180,162,0.35);
+}
+.streak-banner--inline {
+  margin: 0; flex-shrink: 0; padding: 5px 10px; font-size: 11px; gap: 4px;
+  white-space: nowrap;
+}
+.streak-banner--inline svg { flex-shrink: 0; }
+.dark-mode .streak-banner { color: #E8C4A8; border-color: rgba(232,180,162,0.2); }
 .daily-card-badge {
   position: absolute; top: 16px; left: 16px; z-index: 2;
   padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
@@ -175,14 +195,6 @@ body {
 .card-guide { text-align: center; font-size: 14px; color: var(--text-muted); line-height: 1.7; margin-bottom: 20px; }
 .card-hint { text-align: center; font-size: 11px; color: rgba(142,122,114,0.5); letter-spacing: 1px; }
 .card-actions { display: flex; gap: 12px; }
-.streak-banner {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 12px; margin: 0 0 16px; border-radius: 20px;
-  font-size: 13px; font-weight: 600; color: #8B5A3C;
-  background: linear-gradient(135deg, rgba(255,229,180,0.45), rgba(232,180,162,0.25));
-  border: 1px solid rgba(232,180,162,0.35);
-}
-.dark-mode .streak-banner { color: #E8C4A8; border-color: rgba(232,180,162,0.2); }
 .btn-quick-check {
   display: block; width: 100%; margin-top: 14px; padding: 12px;
   background: none; border: none; font-size: 14px; font-weight: 500;
