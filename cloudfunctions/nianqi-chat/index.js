@@ -1,4 +1,4 @@
-const { buildSystemPrompt, buildSummaryPrompt } = require('./prompt')
+const { buildSystemPrompt, buildSummaryPrompt, buildHugPrompt } = require('./prompt')
 
 const BASE_URL = process.env.AI_BASE_URL
   || 'https://tanmycloud-d4gp7dm0l1aeb4fb2.api.tcloudbasegateway.com/v1/ai/cloudbase'
@@ -40,7 +40,22 @@ function checkRateLimit(uid) {
 }
 
 function validate(event) {
-  const action = event.action === 'summary' ? 'summary' : 'chat'
+  const actionRaw = event.action
+  const action = actionRaw === 'summary' || actionRaw === 'hug' ? actionRaw : 'chat'
+
+  if (action === 'hug') {
+    const userName = clip(event.userName, 24) || '朋友'
+    const streak = Math.min(Math.max(Number(event.streak) || 0, 0), 9999)
+    const timeHint = clip(event.timeHint, 12) || '此刻'
+    const memorySummary = clip(event.memorySummary, 300)
+    const memoryEmotion = clip(event.memoryEmotion, 20)
+    const memoryDateLabel = clip(event.memoryDateLabel, 32)
+    const memory = memorySummary
+      ? { summary: memorySummary, emotion: memoryEmotion, dateLabel: memoryDateLabel }
+      : null
+    return { action, userName, streak, timeHint, memory }
+  }
+
   const emotion = clip(event.emotion, 20)
   const guide = clip(event.guide, 500)
   const userName = clip(event.userName, 24) || '朋友'
@@ -147,6 +162,15 @@ exports.main = async (event, context) => {
     if (parsed.error) return parsed
 
     const { action, emotion, guide, userName, messages, memory } = parsed
+
+    if (action === 'hug') {
+      const { streak, timeHint } = parsed
+      const apiMessages = [
+        { role: 'system', content: buildHugPrompt(userName, streak, memory, timeHint) },
+        { role: 'user', content: '念念，我想听你说一句。' },
+      ]
+      return callHunyuan(apiMessages, { maxTokens: 120, temperature: 0.88 })
+    }
 
     if (action === 'summary') {
       const apiMessages = [

@@ -7,12 +7,13 @@ import { ModalChrome } from './ModalChrome'
 import type { JournalItem } from '../../types'
 
 type QuickCheckInModalProps = {
+  cardIdx: number
   onCancel: () => void
   onSaved: (item: JournalItem) => void
 }
 
-export function QuickCheckInModal({ onCancel, onSaved }: QuickCheckInModalProps) {
-  const [emotionIdx, setEmotionIdx] = useState(0)
+export function QuickCheckInModal({ cardIdx, onCancel, onSaved }: QuickCheckInModalProps) {
+  const [emotionIdx, setEmotionIdx] = useState(cardIdx)
   const [note, setNote] = useState('')
   const [rating, setRating] = useState(3)
 

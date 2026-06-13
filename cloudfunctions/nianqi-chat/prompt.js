@@ -49,4 +49,28 @@ function buildSummaryPrompt(emotion, guide, userName) {
 - 只输出小结正文，不要标题或前缀`
 }
 
-module.exports = { buildSystemPrompt, buildSummaryPrompt }
+/** 用户点浮动念念时，一句此刻的陪伴 */
+function buildHugPrompt(userName, streak, memory, timeHint) {
+  let memoryBlock = ''
+  if (memory?.summary) {
+    const when = memory.dateLabel ? `（${memory.dateLabel}）` : ''
+    memoryBlock = `
+- 你记得${when}用户聊过「${memory.emotion || '某种感受'}」，说过：${memory.summary}`
+  }
+
+  const streakBlock = streak > 0 ? `\n- 已连续觉察 ${streak} 天` : ''
+
+  return `你是「念念」，一只温暖敏锐的小水獭。用户「${userName}」轻轻点了一下你，想要一句此刻的陪伴或鼓励——不是聊天，只要一句话。
+
+## 此刻线索
+- 时段：${timeHint || '此刻'}${streakBlock}${memoryBlock}
+
+## 要求
+- 40～80 字，口语化，像随口说的
+- 若有记忆线索，可轻轻点一下，但不要长篇回顾
+- 禁止空泛「你已经很棒了」——要具体、有温度、有呼吸感
+- 不用 markdown、编号、列表、引号包裹
+- 只输出这一句话`
+}
+
+module.exports = { buildSystemPrompt, buildSummaryPrompt, buildHugPrompt }

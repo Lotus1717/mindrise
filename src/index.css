@@ -645,6 +645,8 @@ body {
 .modal-actions-row .btn-ghost { flex: 1; margin-bottom: 0; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .hug-message { text-align: center; font-size: 15px; color: var(--text-muted); line-height: 1.8; margin-bottom: 20px; padding: 16px; background: rgba(232,180,162,0.1); border-radius: 16px; }
+.hug-message--loading { min-height: 72px; display: flex; align-items: center; justify-content: center; }
+.hug-typing { border: none !important; background: transparent !important; padding: 0 !important; box-shadow: none !important; }
 .modal-close { width: 100%; padding: 14px; background: var(--accent-warm); color: #FFF; border: none; border-radius: 24px; font-size: 15px; font-weight: 600; cursor: pointer; }
 
 /* ─── 情绪记录弹窗 ─── */

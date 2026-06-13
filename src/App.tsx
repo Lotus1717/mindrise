@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import './index.css'
-import { CARDS, HUG_MESSAGES } from './data'
+import { CARDS } from './data'
 import { OTTER_DEFAULT, SPLASH_FRAMES } from './assets'
 import { preloadImage, preloadImages, preloadImagesIdle } from './preload'
 import { findTodayEntry, resolveTodayCardIdx, saveTodayCardIdx } from './homeUtils'
@@ -9,6 +9,7 @@ import { NIANGQIAN_GUIDANCE } from './fallback'
 import { requestNotificationPermission } from './notifications'
 import { useAppStorage } from './hooks/useAppStorage'
 import { useChat } from './hooks/useChat'
+import { useHug } from './hooks/useHug'
 import type { Page, JournalItem } from './types'
 import { BottomNav } from './components/BottomNav'
 import { RecordModal } from './components/RecordModal'
@@ -48,7 +49,6 @@ export default function App() {
   const [showEditName, setShowEditName] = useState(false)
   const [showQuickCheckIn, setShowQuickCheckIn] = useState(false)
   const [showReminderTime, setShowReminderTime] = useState(false)
-  const [hugIdx, setHugIdx] = useState(() => Math.floor(Math.random() * HUG_MESSAGES.length))
 
   const chat = useChat(
     cardIdx,
@@ -61,6 +61,15 @@ export default function App() {
   const card = CARDS[cardIdx]
   const todayEntry = useMemo(() => findTodayEntry(storage.journal), [storage.journal])
   const streak = useMemo(() => computeStreak(storage.journal), [storage.journal])
+  const hug = useHug(storage.userName, streak, storage.journal)
+
+  useEffect(() => {
+    if (!todayEntry) return
+    const idx = CARDS.findIndex(c => c.word === todayEntry.emotion)
+    if (idx < 0 || idx === cardIdx) return
+    setCardIdx(idx)
+    saveTodayCardIdx(idx)
+  }, [todayEntry?.id, todayEntry?.emotion])
 
   useEffect(() => {
     preloadImages([OTTER_DEFAULT, CARDS[0].cardImg])
@@ -142,12 +151,22 @@ export default function App() {
 
   const handleQuickCheckInSaved = (item: JournalItem) => {
     storage.setJournal(j => [item, ...j])
+    const idx = CARDS.findIndex(c => c.word === item.emotion)
+    if (idx >= 0) {
+      setCardIdx(idx)
+      saveTodayCardIdx(idx)
+    }
     setShowQuickCheckIn(false)
   }
 
   const openHug = () => {
-    setHugIdx(Math.floor(Math.random() * HUG_MESSAGES.length))
     setShowHug(true)
+    hug.refresh()
+  }
+
+  const closeHug = () => {
+    hug.cancel()
+    setShowHug(false)
   }
 
   if (page === 'splash') {
@@ -272,9 +291,10 @@ export default function App() {
       {showCrisis && <CrisisModal onClose={() => setShowCrisis(false)} />}
       {showHug && (
         <HugModal
-          message={HUG_MESSAGES[hugIdx]}
-          onNextMessage={() => setHugIdx(i => (i + 1) % HUG_MESSAGES.length)}
-          onClose={() => setShowHug(false)}
+          message={hug.message}
+          loading={hug.loading}
+          onNextMessage={hug.refresh}
+          onClose={closeHug}
         />
       )}
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
@@ -297,6 +317,7 @@ export default function App() {
       )}
       {showQuickCheckIn && (
         <QuickCheckInModal
+          cardIdx={cardIdx}
           onCancel={() => setShowQuickCheckIn(false)}
           onSaved={handleQuickCheckInSaved}
         />

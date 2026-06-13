@@ -1,13 +1,15 @@
-import { Heart } from 'lucide-react'
 import { OTTER_DEFAULT } from '../../assets'
 
 type HugModalProps = {
   message: string
+  loading: boolean
   onClose: () => void
   onNextMessage: () => void
 }
 
-export function HugModal({ message, onClose, onNextMessage }: HugModalProps) {
+export function HugModal({ message, loading, onClose, onNextMessage }: HugModalProps) {
+  const busy = loading || !message
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()}>
@@ -23,15 +25,26 @@ export function HugModal({ message, onClose, onNextMessage }: HugModalProps) {
             }}
           />
         </div>
-        <div className="modal-title">
-          <Heart size={16} strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-          {' '}
-          念念说：
+        <div className={`hug-message${loading && !message ? ' hug-message--loading' : ''}`}>
+          {loading && !message ? (
+            <div className="typing-indicator hug-typing">
+              <div className="typing-dot" />
+              <div className="typing-dot" />
+              <div className="typing-dot" />
+            </div>
+          ) : message}
         </div>
-        <div className="hug-message">{message}</div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button className="btn-ghost" style={{ flex: 1 }} onClick={onNextMessage}>再听一句</button>
-          <button className="btn-save" style={{ flex: 2 }} onClick={onClose}>谢谢念念 💛</button>
+          <button
+            type="button"
+            className="btn-ghost"
+            style={{ flex: 1 }}
+            disabled={busy}
+            onClick={onNextMessage}
+          >
+            再听一句
+          </button>
+          <button type="button" className="btn-save" style={{ flex: 2 }} onClick={onClose}>谢谢念念 💛</button>
         </div>
       </div>
     </div>

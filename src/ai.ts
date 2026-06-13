@@ -2,6 +2,7 @@ export type ChatMessage = { role: 'user' | 'assistant'; content: string }
 
 import { callChatFunction } from './cloudbase'
 import type { MemoryContext } from './utils/memory'
+import { getTimeHint } from './utils/hug'
 
 type FnResult = { reply?: string; error?: string; code?: string }
 
@@ -106,6 +107,35 @@ export async function generateAwarenessSummary(
     guide: params.guide,
     userName: params.userName,
     messages: params.messages,
+  })
+
+  return raceAbort(task, params.signal)
+}
+
+/** 浮动念念：一句此刻的陪伴（结合 streak / 记忆 / 时段） */
+export async function fetchNianNianHug(
+  params: {
+    userName: string
+    streak: number
+    memory?: MemoryContext | null
+    timeHint?: string
+    signal?: AbortSignal
+  },
+): Promise<string> {
+  assertConfig()
+
+  const task = invokeChat({
+    action: 'hug',
+    userName: params.userName,
+    streak: params.streak,
+    timeHint: params.timeHint ?? getTimeHint(),
+    ...(params.memory
+      ? {
+          memorySummary: params.memory.summary,
+          memoryEmotion: params.memory.emotion,
+          memoryDateLabel: params.memory.dateLabel,
+        }
+      : {}),
   })
 
   return raceAbort(task, params.signal)
