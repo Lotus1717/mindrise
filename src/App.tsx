@@ -8,7 +8,8 @@ import {
 } from './assets'
 import { preloadImage, preloadImages, preloadImagesIdle } from './preload'
 import { chatWithNianNian, generateAwarenessSummary, type ChatMessage } from './ai'
-import { formatStatusDate, getTimeGreeting, resolveTodayCardIdx, saveTodayCardIdx } from './homeUtils'
+import { formatStatusDate, getTimeGreeting, resolveTodayCardIdx, saveTodayCardIdx, findTodayEntry } from './homeUtils'
+import { NIANGQIAN_OFFLINE, NIANGQIAN_CLOSING, NIANGQIAN_GUIDANCE } from './fallback'
 import {
   Home, BookOpen, User, Share2, Moon, Sun,
   Calendar, Sparkles, Heart, Info, ArrowLeft,
@@ -38,29 +39,17 @@ const EMOTION_LETTERS: Record<string,string> = {
   '焦虑':'焦','疲惫':'疲','愤怒':'怒','平静':'平','欣喜':'欣',
   '孤独':'孤','感恩':'恩','迷茫':'茫','期待':'期','释然':'释',
 }
-const SOCRATIC: Record<string,string[]> = {
-  '焦虑':['你感到焦虑时，身体哪个部位最紧绷？','那股紧绷感像什么形状？有多大？','如果焦虑是一个声音，它在说什么？','深呼吸，那团能量现在变了吗？','这个焦虑要保护你远离什么？'],
-  '疲惫':['你的身体在告诉你什么？','最近有没有好好休息过？','如果给自己放半天假，你最想做什么？','那种疲惫里，有没有藏着一点点委屈？','你上一次什么都不做是什么时候？'],
-  '愤怒':['是什么触发了这团愤怒？','愤怒在保护你的哪条边界？','如果愤怒有颜色，它会是什么？','这团愤怒想让你做什么？','当你允许自己愤怒时，最害怕什么？'],
-  '平静':['这份平静，是什么时候开始的？','这种感觉，以前什么时候有过？','是什么带给你这份平静？','如果你能把这份感觉收藏起来，你会放在哪里？','此刻最让你满足的是什么？'],
-  '孤独':['你感觉到孤独时，最想谁在身边？','这份孤独，是新朋友还没出现，还是旧的人在远去？','有没有某个时刻，孤独感突然消失了？','如果你可以给自己一段陪伴，你会说什么？','一个人待着时，最害怕什么声音？'],
-  '欣喜':['今天有什么具体的事让你这么开心？','这份开心，你想和谁分享？','上一次这么开心是什么时候？','有什么还没来得及庆祝的小事？','这种感觉，你能用什么方式留住它？'],
-  '感恩':['今天你想感谢的第一件事是什么？','有什么人，你很久没说谢谢了？','有没有一件小事，你原本以为理所当然？','如果要给今天写一句感恩的话，你会写什么？','你收到的善意里，哪一份最让你印象深刻？'],
-  '迷茫':['这种迷茫感，是来自选择太多，还是方向不清晰？','如果有一个人能给你指路，你最想问什么？','你内心深处真正想要的是什么？','有什么声音，是你在强迫自己忽略的？','如果把迷茫画成一幅画，你会画什么？'],
-  '期待':['你在期待的那件事，对你意味着什么？','如果它实现了，你的生活会有什么不同？','现在可以做什么，让这个期待更近一步？','有什么恐惧，是藏在期待背后的？','你上一次对未来充满希望是什么时候？'],
-  '释然':['是什么让你放下了？','那个放下的瞬间，是什么感觉？','有什么东西，是你终于可以不再紧握的？','这份释然花了多长时间？','你愿意给自己时间吗？'],
-}
-const GUIDANCE = ['慢慢来，我在这里。','你的感受很重要，试着描述它。','呼吸，感受这个时刻。','对自己温柔一点。','这个感受，没有对错。']
 const MAX_MSGS = 50
 const MOOD_EMOJI = ['', '😣', '😔', '😐', '🙂', '💛']
 const MOOD_LABELS = ['', '低落', '不好', '还好', '不错', '超棒']
 
-function RecordModal({ card, messages, userName, onClose, onSave }: {
+function RecordModal({ card, messages, userName, onCancel, onSaved, onFinish }: {
   card: typeof CARDS[0]
   messages: { role: 'ai' | 'user'; text: string }[]
   userName: string
-  onClose: () => void
-  onSave: (item: JournalItem) => void
+  onCancel: () => void
+  onSaved: (item: JournalItem) => void
+  onFinish: () => void
 }) {
   const [rating, setRating] = useState(0)
   const [selTags, setSelTags] = useState<string[]>([])
@@ -104,13 +93,13 @@ function RecordModal({ card, messages, userName, onClose, onSave }: {
       cardImg: card.cardImg,
       ts: now.getTime(),
     }
-    onSave(item)
+    onSaved(item)
     setSaved(true)
-    const id = setTimeout(onClose, 1800)
+    const id = setTimeout(onFinish, 1800)
     return () => clearTimeout(id)
-  }, [rating, selTags, summary, defaultSummary, card, onSave, onClose])
+  }, [rating, selTags, summary, defaultSummary, card, onSaved, onFinish])
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onCancel}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()}>
         {!saved ? (
           <>
@@ -138,7 +127,7 @@ function RecordModal({ card, messages, userName, onClose, onSave }: {
             <div style={{ fontSize:13,color:'var(--text-muted)',marginBottom:8 }}>情绪标签：</div>
             <div className="record-tags">{emotionTags.map(t=><div key={t} className={`tag-chip ${selTags.includes(t)?'selected':''}`} onClick={()=>setSelTags(p=>p.includes(t)?p.filter(x=>x!==t):[...p,t])}>{t}</div>)}</div>
             <button className="btn-save" onClick={handleSave} style={{ opacity:1 }}>保存到日记</button>
-            <button className="btn-share" onClick={onClose}>取消</button>
+            <button className="btn-share" onClick={onCancel}>取消</button>
           </>
         ) : (
           <div style={{ textAlign:'center',padding:'24px 0' }}>
@@ -326,6 +315,7 @@ export default function App() {
   const [expandedJournal, setExpandedJournal] = useState<string | null>(null)
   const [chatHistory, setChatHistory] = useState<Record<number, {role:'ai'|'user';text:string}[]>>({})
   const [journal, setJournal] = useState<JournalItem[]>([])
+  const [chatError, setChatError] = useState<'open' | 'send' | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const tipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const chatAbortRef = useRef<AbortController | null>(null)
@@ -402,7 +392,10 @@ export default function App() {
   useEffect(() => {
     if (page !== 'chat' || msgs.length === 0) return
     if (tipTimerRef.current) clearTimeout(tipTimerRef.current)
-    tipTimerRef.current = setTimeout(() => { setShowTip(true); setTipIdx(Math.floor(Math.random()*GUIDANCE.length)) }, 15000)
+    tipTimerRef.current = setTimeout(() => {
+      setShowTip(true)
+      setTipIdx(Math.floor(Math.random() * NIANGQIAN_GUIDANCE.length))
+    }, 15000)
     return () => { if (tipTimerRef.current) clearTimeout(tipTimerRef.current) }
   }, [page, msgs.length])
 
@@ -411,10 +404,9 @@ export default function App() {
   const toApiMessages = useCallback((list: { role: 'ai' | 'user'; text: string }[]): ChatMessage[] =>
     list.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), [])
 
-  const fallbackReply = useCallback((emotion: string) => {
-    const pool = SOCRATIC[emotion] || GUIDANCE
-    return pool[Math.floor(Math.random() * pool.length)]
-  }, [])
+  const userMsgCount = useMemo(() => msgs.filter(m => m.role === 'user').length, [msgs])
+  const todayEntry = useMemo(() => findTodayEntry(journal), [journal])
+  const canFinishChat = userMsgCount >= 1
 
   const requestAiReply = useCallback(async (
     emotion: string,
@@ -435,12 +427,13 @@ export default function App() {
     })
   }, [userName])
 
-  const startChat = useCallback(async () => {
+  const startChat = useCallback(async (forceNew = false) => {
     const card = CARDS[cardIdx]
     const existing = chatHistory[cardIdx]
     setOtterMood(OTTER_CURIOUS)
     setShowTip(false)
-    if (existing && existing.length > 0) {
+    setChatError(null)
+    if (!forceNew && existing && existing.length > 0) {
       setMsgs(existing)
       return
     }
@@ -456,13 +449,60 @@ export default function App() {
       setChatHistory(h => ({ ...h, [cardIdx]: opening }))
     } catch (err) {
       if ((err as Error).name === 'AbortError') return
-      const opening = [{ role: 'ai' as const, text: fallbackReply(card.word) }]
+      setChatError('open')
+      const opening = [{ role: 'ai' as const, text: NIANGQIAN_OFFLINE }]
       setMsgs(opening)
-      setChatHistory(h => ({ ...h, [cardIdx]: opening }))
     } finally {
       setTyping(false)
     }
-  }, [cardIdx, chatHistory, requestAiReply, fallbackReply])
+  }, [cardIdx, chatHistory, requestAiReply])
+
+  const retryChat = useCallback(async () => {
+    if (chatError === 'open') {
+      await startChat(true)
+      return
+    }
+    if (chatError !== 'send' || typing) return
+    const card = CARDS[cardIdx]
+    const history = toApiMessages(msgs.filter(m => m.text !== NIANGQIAN_OFFLINE))
+    if (history.length === 0) return
+    setChatError(null)
+    setTyping(true)
+    try {
+      const reply = await requestAiReply(card.word, card.guide, history, partial => {
+        setTyping(false)
+        setMsgs(prev => {
+          const withoutErr = prev.filter(m => m.text !== NIANGQIAN_OFFLINE)
+          const base = withoutErr.length > 0 && withoutErr[withoutErr.length - 1]?.role === 'ai'
+            ? withoutErr.slice(0, -1)
+            : withoutErr
+          return [...base, { role: 'ai' as const, text: partial }]
+        })
+      })
+      const withoutErr = msgs.filter(m => m.text !== NIANGQIAN_OFFLINE)
+      const aiMsg = { role: 'ai' as const, text: reply }
+      const final = [...withoutErr, aiMsg]
+      const clipped = final.length > MAX_MSGS ? final.slice(Math.floor(MAX_MSGS / 3)) : final
+      setMsgs(clipped)
+      setChatHistory(h => ({ ...h, [cardIdx]: clipped }))
+      setOtterMood(Math.random() > 0.4 ? OTTER_CURIOUS : OTTER_DEFAULT)
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') return
+      setChatError('send')
+      setMsgs(prev => [...prev.filter(m => m.text !== NIANGQIAN_OFFLINE), { role: 'ai' as const, text: NIANGQIAN_OFFLINE }])
+    } finally {
+      setTyping(false)
+    }
+  }, [chatError, typing, cardIdx, msgs, requestAiReply, toApiMessages, startChat])
+
+  const handleFinishChat = useCallback(() => {
+    if (!canFinishChat || typing) return
+    const closing = { role: 'ai' as const, text: NIANGQIAN_CLOSING }
+    const updated = [...msgs, closing]
+    setMsgs(updated)
+    setChatHistory(h => ({ ...h, [cardIdx]: updated }))
+    setShowRecord(true)
+  }, [canFinishChat, typing, msgs, cardIdx])
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || typing) return
@@ -477,6 +517,7 @@ export default function App() {
     setInput('')
     setTyping(true)
     setShowTip(false)
+    setChatError(null)
 
     try {
       const reply = await requestAiReply(card.word, card.guide, toApiMessages(trimmed), partial => {
@@ -496,14 +537,13 @@ export default function App() {
       setOtterMood(Math.random() > 0.4 ? OTTER_CURIOUS : OTTER_DEFAULT)
     } catch (err) {
       if ((err as Error).name === 'AbortError') return
-      const aiMsg = { role: 'ai' as const, text: fallbackReply(card.word) }
-      const final = [...trimmed, aiMsg]
-      setMsgs(final)
-      setChatHistory(h => ({ ...h, [cardIdx]: final.slice(-MAX_MSGS) }))
+      setChatError('send')
+      setMsgs(prev => [...prev, { role: 'ai' as const, text: NIANGQIAN_OFFLINE }])
+      setChatHistory(h => ({ ...h, [cardIdx]: [...trimmed, { role: 'ai' as const, text: NIANGQIAN_OFFLINE }] }))
     } finally {
       setTyping(false)
     }
-  }, [input, cardIdx, msgs, typing, requestAiReply, toApiMessages, fallbackReply])
+  }, [input, cardIdx, msgs, typing, requestAiReply, toApiMessages])
 
   const handleNext = useCallback(async () => {
     const nextIdx = (cardIdx + 1) % CARDS.length
@@ -517,6 +557,12 @@ export default function App() {
   }, [cardIdx])
 
   const enterChat = useCallback(() => { setPage('chat'); startChat() }, [startChat])
+
+  const reviewToday = useCallback(() => {
+    if (!todayEntry) return
+    setExpandedJournal(todayEntry.id)
+    setPage('journal')
+  }, [todayEntry])
 
   const card = CARDS[cardIdx]
   const weekData = useMemo(() => {
@@ -601,21 +647,41 @@ export default function App() {
           </div>
           <div className="home-page">
             <div className="home-greeting">{getTimeGreeting()}，{userName}</div>
+            {todayEntry && (
+              <div className="today-done-banner">
+                <span className="today-done-check">✓</span>
+                <div>
+                  <div className="today-done-title">今日觉察已完成</div>
+                  <div className="today-done-preview">{todayEntry.emotion} · {todayEntry.summary.slice(0, 36)}{todayEntry.summary.length > 36 ? '…' : ''}</div>
+                </div>
+              </div>
+            )}
             <div className={`card-container ${changing?'card-out':'card-in'}`}>
               <div className="emotion-card" onClick={enterChat} style={{cursor:'pointer'}}>
-                <div className="daily-card-badge">今日情绪卡</div>
+                <div className={`daily-card-badge ${todayEntry ? 'daily-card-badge-done' : ''}`}>
+                  {todayEntry ? '今日已完成 ✓' : '今日情绪卡'}
+                </div>
                 <div style={{position:'relative',width:'100%',height:215,borderRadius:16,overflow:'hidden',marginBottom:20}}>
                   <img decoding="async" src={card.cardImg} alt={card.word} style={{width:'100%',height:'100%',objectFit:'cover'}} fetchPriority="high" />
                   <div style={{position:'absolute',inset:0,background:`linear-gradient(160deg,${CARD_COLORS[card.word]}cc,${CARD_COLORS[card.word]}99)`,display:'flex',alignItems:'center',justifyContent:'center'}}><div className="card-art-orb"/></div>
                 </div>
                 <div className="card-emotion-word" style={{letterSpacing:6}}>{card.word}</div>
                 <div className="card-guide">{card.guide}</div>
-                <div className="card-hint">▼ 点击探索内心</div>
+                <div className="card-hint">▼ {todayEntry ? '点击和念念再聊聊' : '点击探索内心'}</div>
               </div>
             </div>
             <div className="card-actions">
-              <button className="btn-primary" onClick={enterChat}>探索这张卡</button>
-              <button className="btn-ghost" onClick={handleNext}>换一张</button>
+              {todayEntry ? (
+                <>
+                  <button className="btn-primary" onClick={reviewToday}>回顾今天的觉察</button>
+                  <button className="btn-ghost" onClick={enterChat}>和念念再聊聊</button>
+                </>
+              ) : (
+                <>
+                  <button className="btn-primary" onClick={enterChat}>探索这张卡</button>
+                  <button className="btn-ghost" onClick={handleNext}>换一张</button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -644,14 +710,22 @@ export default function App() {
                 <div className="typing-indicator"><div className="typing-dot"/><div className="typing-dot"/><div className="typing-dot"/></div>
               </div>
             )}
-            {msgs.length>=3&&!showRecord&&(
-              <div style={{display:'flex',justifyContent:'center',marginTop:8}}>
-                <button className="btn-primary" style={{padding:'10px 28px',fontSize:14}} onClick={()=>setShowRecord(true)}><Sparkles size={14} strokeWidth={2} style={{marginRight:4,verticalAlign:'middle'}}/> 生成今日觉察</button>
+            {canFinishChat && !showRecord && !typing && (
+              <div className="chat-finish-row">
+                <button type="button" className="btn-ghost chat-finish-btn" onClick={handleFinishChat}>今天先到这里</button>
+                <button type="button" className="btn-primary chat-finish-btn" onClick={() => setShowRecord(true)}>
+                  <Sparkles size={14} strokeWidth={2} style={{marginRight:4,verticalAlign:'middle'}}/> 生成今日觉察
+                </button>
+              </div>
+            )}
+            {chatError && !typing && (
+              <div style={{ display:'flex', justifyContent:'center', marginTop:8 }}>
+                <button type="button" className="btn-ghost chat-retry-btn" onClick={retryChat}>再试一次</button>
               </div>
             )}
             <div ref={endRef}/>
           </div>
-          {showTip&&(<div className="otter-tip-bubble">{GUIDANCE[tipIdx]}</div>)}
+          {showTip&&(<div className="otter-tip-bubble">{NIANGQIAN_GUIDANCE[tipIdx]}</div>)}
           <div className="chat-input-bar">
             <input className="chat-input" placeholder="慢慢来，我在听……" value={input} disabled={typing} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!typing&&handleSend()}/>
             <button className="chat-send" onClick={handleSend} disabled={typing || !input.trim()} style={{opacity:typing||!input.trim()?0.45:1}}>↑</button>
@@ -819,7 +893,21 @@ export default function App() {
         </div>
       )}
 
-      {showRecord&&<RecordModal card={card} messages={msgs} userName={userName} onClose={()=>{ setShowRecord(false); setPage('home'); setMsgs([]) }} onSave={(item)=>setJournal(j=>[item, ...j])}/>}
+      {showRecord&&(
+        <RecordModal
+          card={card}
+          messages={msgs.filter(m => m.text !== NIANGQIAN_CLOSING && m.text !== NIANGQIAN_OFFLINE)}
+          userName={userName}
+          onCancel={() => setShowRecord(false)}
+          onSaved={(item) => setJournal(j => [item, ...j])}
+          onFinish={() => {
+            setShowRecord(false)
+            setPage('home')
+            setMsgs([])
+            setChatHistory(h => ({ ...h, [cardIdx]: [] }))
+          }}
+        />
+      )}
       {showShare&&<ShareModal card={card} onClose={()=>setShowShare(false)}/>}
     </div>
   )

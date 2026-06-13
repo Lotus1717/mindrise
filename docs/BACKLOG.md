@@ -18,6 +18,11 @@
   - [x] 对话 → 觉察小结：`action: summary` 云函数 + 弹窗 AI 预填
   - [x] 流式体感：混元 `stream: true` + 前端逐字展示（`revealTextProgressively`）
   - [x] 今日一卡 + 动态首页：按日种子固定卡牌、问候语/日期随系统时间
+- [x] **P0 第一梯队优化（2026-06-13）**
+  - [x] 今日觉察完成态：首页 banner +「回顾今天的觉察」
+  - [x] 对话收束：「今天先到这里」+ 取消弹窗保留对话
+  - [x] 降级文案统一：`fallback.ts` + 再试一次
+  - [x] 云函数 uid 限频 + `docs/SECURITY.md` 运维清单
 
 ---
 
@@ -27,12 +32,14 @@
 
 - [x] **提交未入库改动**：云函数、`src/ai.ts`、`src/homeUtils.ts` 等（2026-06-13）
 - [x] **部署云函数**：CloudBase 控制台已更新（含 `summary` 模式与 stream 解析，联调通过）
-- [ ] **轮换 API Key**：Key 曾在对话/历史中明文出现，建议在 CloudBase 控制台重新生成并更新云函数 `AI_API_KEY`
+- [ ] **部署云函数（限频版）**：控制台同步 `index.js` 限频逻辑
+- [ ] **轮换 API Key**：见 [`docs/SECURITY.md`](SECURITY.md)
+- [ ] **混元 Token 告警**：见 [`docs/SECURITY.md`](SECURITY.md)
 
 ### P1 · 安全与稳定性
 
-- [ ] **云函数限频**：按 `auth.uid` 或 IP 限制调用频率，防止 Token 被刷（控制台限频或函数内简单计数）
-- [ ] **混元 Token 告警**：CloudBase 控制台设置用量/配额告警
+- [x] **云函数限频**：按 `context.auth.uid` 滑动窗口（代码已内置，需重新部署）
+- [ ] **控制台叠加限频**：云函数 QPS / IP 限制（可选）
 - [ ] **完善 `cloudfunctions/nianqi-chat/README.md`**：补充 `action: summary` 测试事件
 
 ### P2 · 体验优化
@@ -101,6 +108,8 @@ npm run dev
 | `cloudfunctions/nianqi-chat/prompt.js` | 念念系统提示词 + 觉察小结提示词 |
 | `src/cloudbase.ts` | 匿名登录 + callFunction |
 | `src/ai.ts` | 对话 API、觉察小结、逐字展示 |
-| `src/homeUtils.ts` | 今日一卡、日期/问候语 |
+| `src/homeUtils.ts` | 今日一卡、日期/问候语、今日日记查询 |
+| `src/fallback.ts` | 离线降级与引导文案 |
+| `docs/SECURITY.md` | Key 轮换、用量告警、限频说明 |
 | `cloudbaserc.json` | 云函数部署配置 |
 | `.env.example` | 前端环境变量模板 |

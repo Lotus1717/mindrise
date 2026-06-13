@@ -42,3 +42,15 @@ export async function resolveTodayCardIdx(total: number): Promise<number> {
 export async function saveTodayCardIdx(cardIdx: number): Promise<void> {
   await storageSet('mindrise-daily-card', { dateKey: getDateKey(), cardIdx })
 }
+
+export function getTodayRange(d = new Date()) {
+  const start = new Date(d)
+  start.setHours(0, 0, 0, 0)
+  return { start: start.getTime(), end: start.getTime() + 86400000 }
+}
+
+/** 今日是否已有觉察日记 */
+export function findTodayEntry<T extends { ts: number }>(items: T[]): T | undefined {
+  const { start, end } = getTodayRange()
+  return items.find(j => j.ts >= start && j.ts < end)
+}

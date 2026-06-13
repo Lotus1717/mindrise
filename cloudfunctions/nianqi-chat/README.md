@@ -94,6 +94,10 @@ npm run deploy:fn
 | `AI_API_KEY` | ✅ | CloudBase API Key，**仅在控制台配置，勿提交 Git** |
 | `AI_BASE_URL` | 否 | 默认 `https://tanmycloud-d4gp7dm0l1aeb4fb2.api.tcloudbasegateway.com/v1/ai/cloudbase` |
 | `AI_MODEL` | 否 | 默认 `hy3-preview` |
+| `RATE_LIMIT_WINDOW_MS` | 否 | 限频窗口毫秒，默认 `60000` |
+| `RATE_LIMIT_MAX` | 否 | 窗口内最大请求数，默认 `40` |
+
+安全运维（Key 轮换、用量告警）见 [`docs/SECURITY.md`](../../docs/SECURITY.md)。
 
 `AI_BASE_URL` / `AI_MODEL` 已在根目录 `cloudbaserc.json` 中预置，CLI 部署时会写入；网页端创建函数时需手动添加或依赖代码内默认值。
 

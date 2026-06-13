@@ -7,9 +7,36 @@ const MODEL = process.env.AI_MODEL || 'hy3-preview'
 
 const MAX_MSGS = 50
 const MAX_CONTENT = 2000
+const RATE_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS) || 60_000
+const RATE_MAX = Number(process.env.RATE_LIMIT_MAX) || 40
+
+/** 按 uid 滑动窗口限频（单实例内存，多实例各自计数，仍优于无限刷） */
+const rateBuckets = new Map()
 
 function clip(text, max) {
   return typeof text === 'string' ? text.slice(0, max) : ''
+}
+
+function getAuthUid(event, context) {
+  return context?.auth?.uid
+    || event?.userInfo?.uid
+    || event?.tcbContext?.auth?.uid
+    || 'anonymous'
+}
+
+function checkRateLimit(uid) {
+  const key = clip(uid, 64) || 'anonymous'
+  const now = Date.now()
+  let bucket = rateBuckets.get(key)
+  if (!bucket || now - bucket.start >= RATE_WINDOW_MS) {
+    bucket = { start: now, count: 0 }
+    rateBuckets.set(key, bucket)
+  }
+  bucket.count += 1
+  if (bucket.count > RATE_MAX) {
+    return { error: '请求太频繁啦，稍歇一会儿再找念念～', code: 'RATE_LIMIT' }
+  }
+  return null
 }
 
 function validate(event) {
@@ -99,11 +126,15 @@ async function callHunyuan(apiMessages, { stream = false, maxTokens = 320, tempe
   return { reply }
 }
 
-exports.main = async (event) => {
+exports.main = async (event, context) => {
   try {
     if (!API_KEY) {
       return { error: '云函数未配置 AI_API_KEY，请在 CloudBase 控制台设置环境变量' }
     }
+
+    const uid = getAuthUid(event, context)
+    const limited = checkRateLimit(uid)
+    if (limited) return limited
 
     const parsed = validate(event)
     if (parsed.error) return parsed
