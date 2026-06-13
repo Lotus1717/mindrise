@@ -24,4 +24,17 @@ function buildSystemPrompt(emotion, guide, userName) {
 若用户刚开始觉察、尚未深入发言，用第一个具体问题或思维切片自然开启，不要自我介绍。`
 }
 
-module.exports = { buildSystemPrompt }
+/** 根据对话生成「今日觉察」小结 */
+function buildSummaryPrompt(emotion, guide, userName) {
+  return `你是「念念」，App「念起」里的觉察老友。用户「${userName}」刚完成围绕「${emotion}」的觉察对话（卡牌引导：${guide}）。
+
+请根据对话内容，写一段「今日觉察」小结，供用户保存到日记。
+
+要求：
+- 80～150 字，第二人称「你」
+- 必须引用对话里用户说过的具体细节（身体感受、意象、事件），禁止空泛鸡汤
+- 温暖、具体、像老友帮用户收束今天，不说教、不列点、不用 markdown
+- 只输出小结正文，不要标题或前缀`
+}
+
+module.exports = { buildSystemPrompt, buildSummaryPrompt }

@@ -105,6 +105,14 @@ body {
 /* ─── 首页 ─── */
 .home-page { padding: 8px 24px 24px; }
 .home-greeting { font-size: 22px; font-weight: 600; color: var(--text-dark); margin-bottom: 20px; }
+.daily-card-badge {
+  position: absolute; top: 16px; left: 16px; z-index: 2;
+  padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  letter-spacing: 1px; color: #3C2E2B;
+  background: rgba(255,255,255,0.88); backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(60,46,43,0.08);
+}
+.dark-mode .daily-card-badge { color: var(--text-dark); background: rgba(30,30,46,0.9); }
 .card-container { position: relative; margin-bottom: 20px; }
 
 .emotion-card {

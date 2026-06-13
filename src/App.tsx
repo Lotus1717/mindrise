@@ -7,7 +7,8 @@ import {
   SPLASH_FRAMES, ONBOARD_STEPS, SHARE_BG, LOGO_48,
 } from './assets'
 import { preloadImage, preloadImages, preloadImagesIdle } from './preload'
-import { chatWithNianNian, type ChatMessage } from './ai'
+import { chatWithNianNian, generateAwarenessSummary, type ChatMessage } from './ai'
+import { formatStatusDate, getTimeGreeting, resolveTodayCardIdx, saveTodayCardIdx } from './homeUtils'
 import {
   Home, BookOpen, User, Share2, Moon, Sun,
   Calendar, Sparkles, Heart, Info, ArrowLeft,
@@ -54,14 +55,40 @@ const MAX_MSGS = 50
 const MOOD_EMOJI = ['', '😣', '😔', '😐', '🙂', '💛']
 const MOOD_LABELS = ['', '低落', '不好', '还好', '不错', '超棒']
 
-function RecordModal({ card, onClose, onSave }: { card: typeof CARDS[0]; onClose: () => void; onSave: (item: JournalItem) => void }) {
+function RecordModal({ card, messages, userName, onClose, onSave }: {
+  card: typeof CARDS[0]
+  messages: { role: 'ai' | 'user'; text: string }[]
+  userName: string
+  onClose: () => void
+  onSave: (item: JournalItem) => void
+}) {
   const [rating, setRating] = useState(0)
   const [selTags, setSelTags] = useState<string[]>([])
   const [summary, setSummary] = useState('')
+  const [loadingSummary, setLoadingSummary] = useState(true)
   const [saved, setSaved] = useState(false)
   const [editing, setEditing] = useState(false)
   const savingRef = useRef(false)
   const defaultSummary = `今天，我在「念起」与念念一起完成了一次情绪觉察。我感受到的是「${card.word}」——${card.guide} 这个时刻，值得被记住。`
+
+  useEffect(() => {
+    const ctrl = new AbortController()
+    const apiMsgs: ChatMessage[] = messages.map(m => ({
+      role: m.role === 'ai' ? 'assistant' : 'user',
+      content: m.text,
+    }))
+    generateAwarenessSummary({
+      emotion: card.word,
+      guide: card.guide,
+      userName,
+      messages: apiMsgs,
+      signal: ctrl.signal,
+    })
+      .then(text => setSummary(text))
+      .catch(() => setSummary(''))
+      .finally(() => setLoadingSummary(false))
+    return () => ctrl.abort()
+  }, [card.word, card.guide, messages, userName])
   const handleSave = useCallback(() => {
     if (savingRef.current) return
     savingRef.current = true
@@ -100,7 +127,9 @@ function RecordModal({ card, onClose, onSave }: { card: typeof CARDS[0]; onClose
             </div>
             <div style={{ fontSize:13,color:'var(--text-muted)',marginBottom:6 }}>这段觉察：</div>
             <div className="record-summary">
-              {editing ? (
+              {loadingSummary ? (
+                <div style={{ color:'var(--text-muted)',fontSize:14,lineHeight:1.7 }}>念念正在帮你收束今天的对话…</div>
+              ) : editing ? (
                 <textarea value={summary||defaultSummary} onChange={e=>setSummary(e.target.value)} onBlur={()=>setEditing(false)} autoFocus style={{ width:'100%',minHeight:80,border:'none',outline:'none',background:'transparent',fontSize:14,lineHeight:1.7,color:'var(--text-dark)',resize:'none',fontFamily:'inherit' }} />
               ) : <div onClick={()=>setEditing(true)} style={{ cursor:'text' }}>{summary||defaultSummary}</div>}
             </div>
@@ -309,6 +338,10 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    resolveTodayCardIdx(CARDS.length).then(setCardIdx)
+  }, [])
+
+  useEffect(() => {
     preloadImage(CARDS[cardIdx].cardImg)
     preloadImage(CARDS[(cardIdx + 1) % CARDS.length].cardImg)
   }, [cardIdx])
@@ -387,6 +420,7 @@ export default function App() {
     emotion: string,
     guide: string,
     history: ChatMessage[],
+    onDelta?: (partial: string) => void,
   ) => {
     chatAbortRef.current?.abort()
     const controller = new AbortController()
@@ -397,6 +431,7 @@ export default function App() {
       userName,
       messages: history,
       signal: controller.signal,
+      onDelta,
     })
   }, [userName])
 
@@ -412,7 +447,10 @@ export default function App() {
     setMsgs([])
     setTyping(true)
     try {
-      const reply = await requestAiReply(card.word, card.guide, [])
+      const reply = await requestAiReply(card.word, card.guide, [], partial => {
+        setTyping(false)
+        setMsgs([{ role: 'ai', text: partial }])
+      })
       const opening = [{ role: 'ai' as const, text: reply }]
       setMsgs(opening)
       setChatHistory(h => ({ ...h, [cardIdx]: opening }))
@@ -441,7 +479,15 @@ export default function App() {
     setShowTip(false)
 
     try {
-      const reply = await requestAiReply(card.word, card.guide, toApiMessages(trimmed))
+      const reply = await requestAiReply(card.word, card.guide, toApiMessages(trimmed), partial => {
+        setTyping(false)
+        setMsgs(prev => {
+          const base = prev.length > 0 && prev[prev.length - 1]?.role === 'ai'
+            ? prev.slice(0, -1)
+            : prev
+          return [...base, { role: 'ai' as const, text: partial }]
+        })
+      })
       const aiMsg = { role: 'ai' as const, text: reply }
       const final = [...trimmed, aiMsg]
       const clipped = final.length > MAX_MSGS ? final.slice(Math.floor(MAX_MSGS / 3)) : final
@@ -465,6 +511,7 @@ export default function App() {
     setChanging(true)
     setTimeout(() => {
       setCardIdx(nextIdx)
+      saveTodayCardIdx(nextIdx)
       setChanging(false)
     }, 220)
   }, [cardIdx])
@@ -549,13 +596,14 @@ export default function App() {
         <div className="page-enter">
           <div className="status-bar">
             <div className="status-icon" onClick={()=>setDarkMode(d=>!d)}>{darkMode?<Sun size={16} strokeWidth={2}/>:<Moon size={16} strokeWidth={2}/>}</div>
-            <span className="status-date">6月11日 周四</span>
+            <span className="status-date">{formatStatusDate()}</span>
             <div className="status-icon" onClick={()=>setPage('journal')}><Calendar size={16} strokeWidth={2}/></div>
           </div>
           <div className="home-page">
-            <div className="home-greeting">下午好，{userName}</div>
+            <div className="home-greeting">{getTimeGreeting()}，{userName}</div>
             <div className={`card-container ${changing?'card-out':'card-in'}`}>
               <div className="emotion-card" onClick={enterChat} style={{cursor:'pointer'}}>
+                <div className="daily-card-badge">今日情绪卡</div>
                 <div style={{position:'relative',width:'100%',height:215,borderRadius:16,overflow:'hidden',marginBottom:20}}>
                   <img decoding="async" src={card.cardImg} alt={card.word} style={{width:'100%',height:'100%',objectFit:'cover'}} fetchPriority="high" />
                   <div style={{position:'absolute',inset:0,background:`linear-gradient(160deg,${CARD_COLORS[card.word]}cc,${CARD_COLORS[card.word]}99)`,display:'flex',alignItems:'center',justifyContent:'center'}}><div className="card-art-orb"/></div>
@@ -771,7 +819,7 @@ export default function App() {
         </div>
       )}
 
-      {showRecord&&<RecordModal card={card} onClose={()=>{ setShowRecord(false); setPage('home'); setMsgs([]) }} onSave={(item)=>setJournal(j=>[item, ...j])}/>}
+      {showRecord&&<RecordModal card={card} messages={msgs} userName={userName} onClose={()=>{ setShowRecord(false); setPage('home'); setMsgs([]) }} onSave={(item)=>setJournal(j=>[item, ...j])}/>}
       {showShare&&<ShareModal card={card} onClose={()=>setShowShare(false)}/>}
     </div>
   )

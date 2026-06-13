@@ -103,7 +103,7 @@ npm run deploy:fn
 
 **路径：** 云函数 → `nianqi-chat` → **云端测试**
 
-测试事件：
+测试事件（对话）：
 
 ```json
 {
@@ -111,6 +111,21 @@ npm run deploy:fn
   "guide": "此刻，你身体里有一个声音在低语……它想告诉你什么？",
   "userName": "朋友",
   "messages": []
+}
+```
+
+测试事件（觉察小结）：
+
+```json
+{
+  "action": "summary",
+  "emotion": "焦虑",
+  "guide": "此刻，你身体里有一个声音在低语……",
+  "userName": "朋友",
+  "messages": [
+    { "role": "assistant", "content": "胸口有感觉吗？" },
+    { "role": "user", "content": "有点闷，像一团灰色的乱麻。" }
+  ]
 }
 ```
 
