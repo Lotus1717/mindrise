@@ -4,6 +4,7 @@ import { CARDS, HUG_MESSAGES } from './data'
 import { OTTER_DEFAULT, SPLASH_FRAMES } from './assets'
 import { preloadImage, preloadImages, preloadImagesIdle } from './preload'
 import { findTodayEntry, resolveTodayCardIdx, saveTodayCardIdx } from './homeUtils'
+import { computeStreak } from './utils/streak'
 import { NIANGQIAN_GUIDANCE } from './fallback'
 import { requestNotificationPermission } from './notifications'
 import { useAppStorage } from './hooks/useAppStorage'
@@ -20,6 +21,8 @@ import { HugModal } from './components/modals/HugModal'
 import { AboutModal } from './components/modals/AboutModal'
 import { EditNameModal } from './components/modals/EditNameModal'
 import { JournalEditModal } from './components/modals/JournalEditModal'
+import { QuickCheckInModal } from './components/modals/QuickCheckInModal'
+import { ReminderTimeModal } from './components/modals/ReminderTimeModal'
 import { SplashPage } from './pages/SplashPage'
 import { OnboardPage } from './pages/OnboardPage'
 import { HomePage } from './pages/HomePage'
@@ -45,12 +48,21 @@ export default function App() {
   const [showAbout, setShowAbout] = useState(false)
   const [showHug, setShowHug] = useState(false)
   const [showEditName, setShowEditName] = useState(false)
+  const [showQuickCheckIn, setShowQuickCheckIn] = useState(false)
+  const [showReminderTime, setShowReminderTime] = useState(false)
   const [hugIdx, setHugIdx] = useState(() => Math.floor(Math.random() * HUG_MESSAGES.length))
 
-  const chat = useChat(cardIdx, storage.userName, storage.chatHistory, storage.setChatHistory)
+  const chat = useChat(
+    cardIdx,
+    storage.userName,
+    storage.journal,
+    storage.chatHistory,
+    storage.setChatHistory,
+  )
 
   const card = CARDS[cardIdx]
   const todayEntry = useMemo(() => findTodayEntry(storage.journal), [storage.journal])
+  const streak = useMemo(() => computeStreak(storage.journal), [storage.journal])
 
   useEffect(() => {
     preloadImages([OTTER_DEFAULT, CARDS[0].cardImg])
@@ -117,6 +129,24 @@ export default function App() {
     await storage.updateReminder(next)
   }
 
+  const handleSaveReminderTime = async (hour: number, minute: number) => {
+    const next = { ...storage.reminder, hour, minute }
+    if (next.enabled) {
+      const granted = await requestNotificationPermission()
+      if (!granted) {
+        window.alert('请在系统设置中允许通知，才能收到每日觉察提醒。')
+        return
+      }
+    }
+    await storage.updateReminder(next)
+    setShowReminderTime(false)
+  }
+
+  const handleQuickCheckInSaved = (item: JournalItem) => {
+    storage.setJournal(j => [item, ...j])
+    setShowQuickCheckIn(false)
+  }
+
   const openHug = () => {
     setHugIdx(Math.floor(Math.random() * HUG_MESSAGES.length))
     setShowHug(true)
@@ -153,6 +183,7 @@ export default function App() {
           userName={storage.userName}
           card={card}
           todayEntry={todayEntry}
+          streak={streak}
           changing={changing}
           darkMode={storage.darkMode}
           onToggleDark={() => storage.setDarkMode(d => !d)}
@@ -160,6 +191,7 @@ export default function App() {
           onEnterChat={enterChat}
           onNextCard={handleNext}
           onReviewToday={reviewToday}
+          onQuickCheckIn={() => setShowQuickCheckIn(true)}
         />
       )}
 
@@ -205,9 +237,12 @@ export default function App() {
           userName={storage.userName}
           darkMode={storage.darkMode}
           reminderEnabled={storage.reminder.enabled}
+          reminderHour={storage.reminder.hour}
+          reminderMinute={storage.reminder.minute}
           onBack={() => setPage('home')}
           onToggleDark={() => storage.setDarkMode(d => !d)}
           onToggleReminder={handleToggleReminder}
+          onOpenReminderTime={() => setShowReminderTime(true)}
           onEditName={() => setShowEditName(true)}
           onHug={() => setShowHug(true)}
           onShareApp={() => setShowAppShare(true)}
@@ -264,6 +299,20 @@ export default function App() {
             storage.updateJournalItem(editJournalItem.id, patch)
             setEditJournalItem(null)
           }}
+        />
+      )}
+      {showQuickCheckIn && (
+        <QuickCheckInModal
+          onCancel={() => setShowQuickCheckIn(false)}
+          onSaved={handleQuickCheckInSaved}
+        />
+      )}
+      {showReminderTime && (
+        <ReminderTimeModal
+          hour={storage.reminder.hour}
+          minute={storage.reminder.minute}
+          onClose={() => setShowReminderTime(false)}
+          onSave={handleSaveReminderTime}
         />
       )}
     </div>

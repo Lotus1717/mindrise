@@ -4,6 +4,7 @@ import { emotionTags } from '../data'
 import { generateAwarenessSummary, type ChatMessage } from '../ai'
 import { OTTER_GLOW } from '../assets'
 import { CARD_COLORS, EMOTION_LETTERS, MOOD_EMOJI, MOOD_LABELS } from '../constants/emotions'
+import { createJournalItem } from '../utils/journal'
 import type { CardData, ChatMsg, JournalItem } from '../types'
 
 type RecordModalProps = {
@@ -64,18 +65,14 @@ export function RecordModal({
   const handleSave = useCallback(() => {
     if (savingRef.current) return
     savingRef.current = true
-    const now = new Date()
-    const item: JournalItem = {
-      id: String(Date.now()),
-      date: `${now.getMonth() + 1}月${now.getDate()}日`,
-      day: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][now.getDay()],
+    const item = createJournalItem({
       emotion: card.word,
-      rating,
-      tags: selTags,
       summary: summary || defaultSummary,
       cardImg: card.cardImg,
-      ts: now.getTime(),
-    }
+      rating,
+      tags: selTags,
+      kind: 'full',
+    })
     onSaved(item)
     setSaved(true)
   }, [rating, selTags, summary, defaultSummary, card, onSaved])

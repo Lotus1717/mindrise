@@ -59,7 +59,14 @@ function validate(event) {
     return { error: '对话太短，无法生成觉察小结' }
   }
 
-  return { action, emotion, guide, userName, messages }
+  const memorySummary = clip(event.memorySummary, 300)
+  const memoryEmotion = clip(event.memoryEmotion, 20)
+  const memoryDateLabel = clip(event.memoryDateLabel, 32)
+  const memory = memorySummary
+    ? { summary: memorySummary, emotion: memoryEmotion, dateLabel: memoryDateLabel }
+    : null
+
+  return { action, emotion, guide, userName, messages, memory }
 }
 
 async function readStreamReply(res) {
@@ -139,7 +146,7 @@ exports.main = async (event, context) => {
     const parsed = validate(event)
     if (parsed.error) return parsed
 
-    const { action, emotion, guide, userName, messages } = parsed
+    const { action, emotion, guide, userName, messages, memory } = parsed
 
     if (action === 'summary') {
       const apiMessages = [
@@ -151,7 +158,7 @@ exports.main = async (event, context) => {
     }
 
     const apiMessages = [
-      { role: 'system', content: buildSystemPrompt(emotion, guide, userName) },
+      { role: 'system', content: buildSystemPrompt(emotion, guide, userName, memory) },
       ...messages,
     ]
 

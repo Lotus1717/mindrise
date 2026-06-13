@@ -30,6 +30,11 @@
   - [x] 每日觉察提醒（`@capacitor/local-notifications` + Profile 开关）
   - [x] 上架向：隐私政策、危机热线、分享 App（独立弹窗）
   - [x] 代码拆分：`App.tsx` → pages / components / hooks
+- [x] **P1 第三梯队 · 产品留存 + 差异化（2026-06-13）**
+  - [x] 连续觉察 streak：首页展示连续天数
+  - [x] 轻量「30 秒觉察」：选情绪 + 一句记录 → 日记
+  - [x] 提醒时间自定义：Profile 选择时刻
+  - [x] 念念本地记忆：上次觉察摘要注入对话 prompt
 
 ---
 
@@ -38,14 +43,15 @@
 ### P0 · 运维
 
 - [x] **部署云函数（限频版）**：CloudBase 已部署
+- [x] **部署云函数（记忆版）**：CloudBase 已同步 `memory*` 字段
 - [ ] **轮换 API Key**：见 [`docs/SECURITY.md`](SECURITY.md)
 - [ ] **混元 Token 告警**：见 [`docs/SECURITY.md`](SECURITY.md)
 - [ ] **原生打包同步**：`npm run cap:sync`（Local Notifications 权限写入 iOS/Android）
 
 ### P2 · 体验优化
 
+- [x] **提醒时间自定义**：Profile 选择提醒时刻
 - [ ] **真 SSE 流式**：HTTP 触发云函数 + 前端 fetch ReadableStream
-- [ ] **提醒时间自定义**：Profile 选择提醒时刻（当前固定 20:00）
 - [ ] **分享卡片含觉察摘要**：Canvas 绘制用户小结文字
 
 ### P3 · 架构（可选）
@@ -91,7 +97,8 @@ npm run deploy:fn   # 云函数
 | `cloudfunctions/nianqi-chat/index.js` | 云函数入口，`chat` / `summary`，uid 限频 |
 | `src/hooks/useChat.ts` | 对话状态与 API |
 | `src/hooks/useAppStorage.ts` | 本地存储与提醒设置 |
-| `src/notifications.ts` | Capacitor 本地通知 |
+| `src/utils/streak.ts` | 连续觉察天数 |
+| `src/utils/memory.ts` | 上次觉察摘要（本地记忆） |
 | `src/constants/legal.ts` | 隐私政策、危机热线、分享文案 |
 | `docs/SECURITY.md` | Key 轮换、用量告警 |
 | `docs/PRODUCT_EVAL.md` | 产品维度打分与阶段评价（基线 vs 当前） |

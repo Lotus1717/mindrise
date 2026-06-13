@@ -1,6 +1,7 @@
 export type ChatMessage = { role: 'user' | 'assistant'; content: string }
 
 import { callChatFunction } from './cloudbase'
+import type { MemoryContext } from './utils/memory'
 
 type FnResult = { reply?: string; error?: string; code?: string }
 
@@ -58,6 +59,7 @@ export async function chatWithNianNian(
     guide: string
     userName: string
     messages: ChatMessage[]
+    memory?: MemoryContext | null
     signal?: AbortSignal
     onDelta?: (partial: string) => void
   },
@@ -70,6 +72,13 @@ export async function chatWithNianNian(
     guide: params.guide,
     userName: params.userName,
     messages: params.messages,
+    ...(params.memory
+      ? {
+          memorySummary: params.memory.summary,
+          memoryEmotion: params.memory.emotion,
+          memoryDateLabel: params.memory.dateLabel,
+        }
+      : {}),
   })
 
   const reply = await raceAbort(task, params.signal)

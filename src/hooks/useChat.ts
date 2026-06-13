@@ -4,11 +4,13 @@ import { chatWithNianNian, type ChatMessage } from '../ai'
 import { NIANGQIAN_OFFLINE, NIANGQIAN_CLOSING } from '../fallback'
 import { MAX_MSGS } from '../constants/emotions'
 import { OTTER_DEFAULT, OTTER_CURIOUS } from '../assets'
-import type { ChatMsg } from '../types'
+import { getMemoryContext } from '../utils/memory'
+import type { ChatMsg, JournalItem } from '../types'
 
 export function useChat(
   cardIdx: number,
   userName: string,
+  journal: JournalItem[],
   chatHistory: Record<number, ChatMsg[]>,
   setChatHistory: Dispatch<SetStateAction<Record<number, ChatMsg[]>>>,
 ) {
@@ -29,6 +31,7 @@ export function useChat(
 
   const userMsgCount = useMemo(() => msgs.filter(m => m.role === 'user').length, [msgs])
   const canFinishChat = userMsgCount >= 1
+  const memoryContext = useMemo(() => getMemoryContext(journal), [journal])
 
   const requestAiReply = useCallback(async (
     emotion: string,
@@ -44,10 +47,11 @@ export function useChat(
       guide,
       userName,
       messages: history,
+      memory: memoryContext,
       signal: controller.signal,
       onDelta,
     })
-  }, [userName])
+  }, [userName, memoryContext])
 
   const startChat = useCallback(async (forceNew = false) => {
     const card = CARDS[cardIdx]

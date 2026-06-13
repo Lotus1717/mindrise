@@ -5,9 +5,12 @@ type ProfilePageProps = {
   userName: string
   darkMode: boolean
   reminderEnabled: boolean
+  reminderHour: number
+  reminderMinute: number
   onBack: () => void
   onToggleDark: () => void
   onToggleReminder: () => void
+  onOpenReminderTime: () => void
   onEditName: () => void
   onHug: () => void
   onShareApp: () => void
@@ -20,9 +23,12 @@ export function ProfilePage({
   userName,
   darkMode,
   reminderEnabled,
+  reminderHour,
+  reminderMinute,
   onBack,
   onToggleDark,
   onToggleReminder,
+  onOpenReminderTime,
   onEditName,
   onHug,
   onShareApp,
@@ -30,6 +36,8 @@ export function ProfilePage({
   onCrisis,
   onAbout,
 }: ProfilePageProps) {
+  const timeLabel = `${String(reminderHour).padStart(2, '0')}:${String(reminderMinute).padStart(2, '0')}`
+
   return (
     <div className="profile-page page-enter">
       <div className="status-bar">
@@ -81,6 +89,14 @@ export function ProfilePage({
             />
           </div>
         </div>
+        {reminderEnabled && (
+          <div className="profile-list-item" onClick={onOpenReminderTime}>
+            <div className="list-icon"><Bell size={18} strokeWidth={2} style={{ opacity: 0.5 }} /></div>
+            <div className="list-label">提醒时间</div>
+            <div className="list-time">{timeLabel}</div>
+            <div className="list-arrow">›</div>
+          </div>
+        )}
         <div className="profile-list-item" onClick={onShareApp}>
           <div className="list-icon"><Share2 size={18} strokeWidth={2} /></div>
           <div className="list-label">分享App</div>

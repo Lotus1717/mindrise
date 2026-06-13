@@ -48,3 +48,23 @@ export function buildWeekChartData(journal: JournalItem[]): WeekChartDay[] {
 }
 
 export const WEEK_CHART_MAX = 5
+
+const WEEKDAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'] as const
+
+export function createJournalItem(
+  params: Pick<JournalItem, 'emotion' | 'summary' | 'cardImg' | 'rating' | 'tags' | 'kind'>,
+): JournalItem {
+  const now = new Date()
+  return {
+    id: String(Date.now()),
+    date: `${now.getMonth() + 1}月${now.getDate()}日`,
+    day: WEEKDAY_NAMES[now.getDay()],
+    emotion: params.emotion,
+    rating: params.rating,
+    tags: params.tags,
+    summary: params.summary,
+    cardImg: normalizeCardImg(params.cardImg),
+    ts: now.getTime(),
+    kind: params.kind ?? 'full',
+  }
+}

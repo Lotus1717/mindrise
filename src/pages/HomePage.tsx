@@ -1,12 +1,14 @@
-import { Moon, Sun, Calendar } from 'lucide-react'
+import { Moon, Sun, Calendar, Flame } from 'lucide-react'
 import { CARD_COLORS } from '../constants/emotions'
 import { formatStatusDate, getTimeGreeting } from '../homeUtils'
+import { streakLabel } from '../utils/streak'
 import type { CardData, JournalItem } from '../types'
 
 type HomePageProps = {
   userName: string
   card: CardData
   todayEntry?: JournalItem
+  streak: number
   changing: boolean
   darkMode: boolean
   onToggleDark: () => void
@@ -14,12 +16,14 @@ type HomePageProps = {
   onEnterChat: () => void
   onNextCard: () => void
   onReviewToday: () => void
+  onQuickCheckIn: () => void
 }
 
 export function HomePage({
   userName,
   card,
   todayEntry,
+  streak,
   changing,
   darkMode,
   onToggleDark,
@@ -27,7 +31,9 @@ export function HomePage({
   onEnterChat,
   onNextCard,
   onReviewToday,
+  onQuickCheckIn,
 }: HomePageProps) {
+  const streakText = streakLabel(streak)
   return (
     <div className="page-enter">
       <div className="status-bar">
@@ -39,6 +45,12 @@ export function HomePage({
       </div>
       <div className="home-page">
         <div className="home-greeting">{getTimeGreeting()}，{userName}</div>
+        {streakText && (
+          <div className="streak-banner">
+            <Flame size={16} strokeWidth={2} />
+            <span>{streakText}</span>
+          </div>
+        )}
         {todayEntry && (
           <div className="today-done-banner">
             <span className="today-done-check">✓</span>
@@ -85,6 +97,11 @@ export function HomePage({
             </>
           )}
         </div>
+        {!todayEntry && (
+          <button type="button" className="btn-quick-check" onClick={onQuickCheckIn}>
+            今天只想记一句 →
+          </button>
+        )}
       </div>
     </div>
   )
