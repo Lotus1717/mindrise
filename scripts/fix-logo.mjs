@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const LOGO_DIR = join(__dirname, '..', 'public', 'logo')
+const SOURCE = join(LOGO_DIR, 'logo-512.png')
 const IOS_ICON_DIR = join(__dirname, '..', 'ios', 'App', 'App', 'Assets.xcassets', 'AppIcon.appiconset')
 const ANDROID_RES = join(__dirname, '..', 'android', 'app', 'src', 'main', 'res')
 
@@ -144,15 +145,14 @@ async function writeNativeIcons(masterPath) {
 }
 
 async function main() {
-  const master512 = join(LOGO_DIR, 'logo-512.png')
   let masterSquare
 
   try {
-    masterSquare = await cropLogoSquare(master512)
-    console.log('logo-512: cropped checkerboard/shadow margins')
+    masterSquare = await cropLogoSquare(SOURCE)
+    console.log('source: cropped checkerboard/shadow margins')
   } catch {
-    masterSquare = await trimSolidBg(master512)
-    console.log('logo-512: trimmed solid background margins')
+    masterSquare = await trimSolidBg(SOURCE)
+    console.log('source: trimmed solid background margins')
   }
 
   await writeLogoVariants(masterSquare)

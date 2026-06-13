@@ -10,9 +10,13 @@ import { fileURLToPath } from 'node:url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PUBLIC = join(__dirname, '..', 'public')
 
+/** 情绪卡 16:10 横向，与 UI .card-visual aspect-ratio 一致 */
+const CARD_W = 640
+const CARD_H = 400
+
 function ruleFor(relPath) {
   const name = basename(relPath)
-  if (relPath.startsWith('cards/')) return { maxWidth: 640, quality: 82 }
+  if (relPath.startsWith('cards/')) return { maxWidth: CARD_W, quality: 82 }
   if (name.startsWith('splash-') || name.startsWith('frame-')) return { maxWidth: 400, quality: 82 }
   if (name.startsWith('otter-')) return { maxWidth: 256, quality: 82 }
   if (name.startsWith('onboard-')) return { maxWidth: 720, quality: 82 }
@@ -43,7 +47,7 @@ async function convertOne({ rel, full }) {
   const resize = w > cfg.maxWidth ? { width: cfg.maxWidth } : undefined
 
   const pipeline = rel.startsWith('cards/')
-    ? sharp(full).trim({ threshold: 12 }).resize(640, 857, { fit: 'cover', position: 'centre' })
+    ? sharp(full).trim({ threshold: 12 }).resize(CARD_W, CARD_H, { fit: 'cover', position: 'centre' })
     : sharp(full).resize(resize)
 
   await pipeline

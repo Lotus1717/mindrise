@@ -74,7 +74,7 @@ export function HomePage({
               <img decoding="async" src={card.cardImg} alt={card.word} fetchPriority="high" />
               <div
                 className="card-visual-overlay"
-                style={{ background: `linear-gradient(160deg,${CARD_COLORS[card.word]}cc,${CARD_COLORS[card.word]}99)` }}
+                style={{ background: `linear-gradient(160deg,${CARD_COLORS[card.word]}99,${CARD_COLORS[card.word]}66)` }}
               >
                 <div className="card-art-orb" />
               </div>

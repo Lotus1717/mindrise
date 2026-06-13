@@ -211,7 +211,7 @@ body {
 .card-hint { text-align: center; font-size: 11px; color: rgba(142,122,114,0.5); letter-spacing: 1px; }
 .card-actions { display: flex; gap: 12px; }
 .card-visual {
-  position: relative; width: 100%; height: 215px;
+  position: relative; width: 100%; aspect-ratio: 16 / 10;
   border-radius: 16px; overflow: hidden; margin-bottom: 20px;
   background: var(--card-border, #F5EDE3);
 }
@@ -227,8 +227,8 @@ body {
   object-fit: cover; object-position: center; display: block; flex-shrink: 0;
 }
 .card-thumb--sm { width: 40px; height: 40px; border-radius: 10px; }
-.card-thumb--md { width: 70px; height: 94px; border-radius: 14px; }
-.card-thumb--xs { width: 36px; height: 48px; border-radius: 8px; }
+.card-thumb--md { width: 70px; height: 44px; border-radius: 10px; }
+.card-thumb--xs { width: 36px; height: 23px; border-radius: 6px; }
 .btn-quick-check {
   display: block; width: 100%; margin-top: 14px; padding: 12px;
   background: none; border: none; font-size: 14px; font-weight: 500;
@@ -554,7 +554,7 @@ body {
 }
 .dark-mode .journal-tag { background: rgba(255,255,255,0.08); }
 .journal-card-ref { margin-bottom: 4px; }
-.journal-card-ref img { width: 36px; height: 48px; border-radius: 8px; object-fit: cover; object-position: center; display: block; }
+.journal-card-ref img { width: 36px; height: 23px; border-radius: 6px; object-fit: cover; object-position: center; display: block; }
 .journal-item-actions {
   display: flex; align-items: center; justify-content: flex-end; gap: 2px;
   margin-top: 10px; padding-top: 2px;
