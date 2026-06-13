@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Bell } from 'lucide-react'
+import { ModalChrome } from './ModalChrome'
 
 type ReminderTimeModalProps = {
   hour: number
@@ -33,19 +35,20 @@ export function ReminderTimeModal({ hour, minute, onClose, onSave }: ReminderTim
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-        <div className="modal-title">提醒时间</div>
-        <p className="quick-check-sub">念念会在每天的这个时刻轻轻提醒你。</p>
-        <input
-          type="time"
-          className="reminder-time-input"
-          value={value}
-          onChange={e => setValue(e.target.value)}
-        />
-        <button className="btn-save" onClick={handleSave}>保存</button>
-        <button className="btn-ghost-full" onClick={onClose}>取消</button>
-      </div>
-    </div>
+    <ModalChrome
+      title={<><Bell size={16} strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />提醒时间</>}
+      subtitle="念念会在每天的这个时刻轻轻提醒你。"
+      onDismiss={onClose}
+    >
+      <div className="field-label field-label--center">选择时间</div>
+      <input
+        type="time"
+        className="app-input app-input--time"
+        value={value}
+        onChange={e => setValue(e.target.value)}
+      />
+      <button type="button" className="btn-save" onClick={handleSave}>保存</button>
+      <button type="button" className="btn-ghost-full" onClick={onClose}>取消</button>
+    </ModalChrome>
   )
 }

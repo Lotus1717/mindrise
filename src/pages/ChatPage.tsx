@@ -115,18 +115,12 @@ export function ChatPage({
       </div>
       {showTip && <div className="otter-tip-bubble">{tipText}</div>}
       {msgs.length <= 2 && !typing && (
-        <div style={{
-          position: 'fixed', bottom: 72, left: '50%', transform: 'translateX(-50%)',
-          width: '100%', maxWidth: 430, padding: '0 16px', display: 'flex', flexWrap: 'wrap', gap: 8,
-          justifyContent: 'center', zIndex: 24,
-        }}
-        >
+        <div className="chat-quick-replies">
           {QUICK_REPLIES.map(q => (
             <button
               key={q}
               type="button"
-              className="tag-chip"
-              style={{ fontSize: 12, padding: '6px 12px' }}
+              className="tag-chip chat-quick-chip"
               onClick={() => onQuickReply(q)}
             >
               {q}

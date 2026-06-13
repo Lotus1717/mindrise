@@ -104,20 +104,18 @@ export function RecordModal({
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>{card.guide}</div>
               </div>
             </div>
-            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 }}>这段觉察：</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 }} className="field-label">这段觉察</div>
             <div className="record-summary">
               {loadingSummary ? (
                 <div style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.7 }}>念念正在帮你收束今天的对话…</div>
               ) : editing ? (
                 <textarea
+                  className="app-textarea app-textarea--inset"
                   value={summary || defaultSummary}
                   onChange={e => setSummary(e.target.value)}
                   onBlur={() => setEditing(false)}
                   autoFocus
-                  style={{
-                    width: '100%', minHeight: 80, border: 'none', outline: 'none', background: 'transparent',
-                    fontSize: 14, lineHeight: 1.7, color: 'var(--text-dark)', resize: 'none', fontFamily: 'inherit',
-                  }}
+                  rows={4}
                 />
               ) : (
                 <div onClick={() => setEditing(true)} style={{ cursor: 'text' }}>{summary || defaultSummary}</div>

@@ -1,13 +1,14 @@
-import { ArrowLeft, Bell, Share2, Shield, Phone, Moon, Sun, Info } from 'lucide-react'
+import { Bell, Share2, Shield, Phone, Moon, Sun, Info, Clock, Flame } from 'lucide-react'
 import { OTTER_GLOW } from '../assets'
+import { streakLabel } from '../utils/streak'
 
 type ProfilePageProps = {
   userName: string
+  streak: number
   darkMode: boolean
   reminderEnabled: boolean
   reminderHour: number
   reminderMinute: number
-  onBack: () => void
   onToggleDark: () => void
   onToggleReminder: () => void
   onOpenReminderTime: () => void
@@ -21,11 +22,11 @@ type ProfilePageProps = {
 
 export function ProfilePage({
   userName,
+  streak,
   darkMode,
   reminderEnabled,
   reminderHour,
   reminderMinute,
-  onBack,
   onToggleDark,
   onToggleReminder,
   onOpenReminderTime,
@@ -37,93 +38,102 @@ export function ProfilePage({
   onAbout,
 }: ProfilePageProps) {
   const timeLabel = `${String(reminderHour).padStart(2, '0')}:${String(reminderMinute).padStart(2, '0')}`
+  const streakText = streakLabel(streak)
 
   return (
     <div className="profile-page page-enter">
       <div className="status-bar">
-        <div className="status-icon" onClick={onBack}><ArrowLeft size={20} strokeWidth={2} /></div>
-        <span className="status-date">我的</span>
-        <div className="status-icon" onClick={onToggleDark}>
+        <div className="status-spacer" aria-hidden />
+        <span className="status-date status-date--title">我的</span>
+        <div className="status-icon" onClick={onToggleDark} aria-label={darkMode ? '浅色模式' : '深色模式'}>
           {darkMode ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
         </div>
       </div>
-      <div className="profile-header">
-        <div style={{ position: 'relative', marginBottom: 12 }}>
-          <img
-            decoding="async"
-            loading="lazy"
-            src={OTTER_GLOW}
-            alt="念念"
-            className="otter-round"
-            style={{
-              width: 72, height: 72, borderRadius: '50%',
-              boxShadow: '0 0 30px rgba(255,229,180,0.6)',
-            }}
-          />
-          <div style={{
-            position: 'absolute', bottom: -2, right: -2, width: 26, height: 26, borderRadius: '50%',
-            background: 'linear-gradient(135deg,var(--accent-warm),var(--accent-green))',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#fff', fontWeight: 700,
-          }}
-          >
-            念
-          </div>
-        </div>
-        <div className="profile-name">{userName}</div>
-        <div className="profile-edit" onClick={onEditName} style={{ cursor: 'pointer' }}>编辑昵称 ›</div>
-      </div>
-      <button className="profile-hug-btn" onClick={onHug}>🤗 抱抱念念</button>
-      <div className="profile-list">
-        <div className="profile-list-item" onClick={onToggleReminder}>
-          <div className="list-icon"><Bell size={18} strokeWidth={2} /></div>
-          <div className="list-label">每日觉察提醒</div>
-          <div style={{
-            width: 44, height: 26, borderRadius: 13, background: reminderEnabled ? 'var(--accent-warm)' : 'rgba(0,0,0,0.12)',
-            position: 'relative', transition: 'background 0.2s', flexShrink: 0,
-          }}
-          >
-            <div style={{
-              position: 'absolute', top: 3, left: reminderEnabled ? 21 : 3, width: 20, height: 20,
-              borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
-            }}
+
+      <div className="profile-body">
+        <section className="profile-header">
+          <div className="profile-avatar-wrap">
+            <img
+              decoding="async"
+              loading="lazy"
+              src={OTTER_GLOW}
+              alt="念念"
+              className="profile-avatar-img otter-round"
             />
+            <span className="profile-avatar-badge" aria-hidden>念</span>
           </div>
-        </div>
-        {reminderEnabled && (
-          <div className="profile-list-item" onClick={onOpenReminderTime}>
-            <div className="list-icon"><Bell size={18} strokeWidth={2} style={{ opacity: 0.5 }} /></div>
-            <div className="list-label">提醒时间</div>
-            <div className="list-time">{timeLabel}</div>
-            <div className="list-arrow">›</div>
+          <div className="profile-name">{userName}</div>
+          {streakText && (
+            <div className="profile-streak">
+              <Flame size={14} strokeWidth={2} />
+              <span>{streakText}</span>
+            </div>
+          )}
+          <button type="button" className="profile-edit" onClick={onEditName}>编辑昵称 ›</button>
+        </section>
+
+        <button type="button" className="profile-hug-btn" onClick={onHug}>🤗 抱抱念念</button>
+
+        <section className="profile-section">
+          <h2 className="profile-section-title">觉察习惯</h2>
+          <div className="profile-list">
+            <div className="profile-list-item" onClick={onToggleReminder}>
+              <div className="list-icon list-icon--warm"><Bell size={18} strokeWidth={2} /></div>
+              <div className="list-label">每日觉察提醒</div>
+              <div
+                className={`toggle-switch ${reminderEnabled ? 'toggle-switch--on' : ''}`}
+                role="switch"
+                aria-checked={reminderEnabled}
+                aria-label="每日觉察提醒"
+              >
+                <div className="toggle-switch-knob" />
+              </div>
+            </div>
+            {reminderEnabled && (
+              <div className="profile-list-item profile-list-item--sub" onClick={onOpenReminderTime}>
+                <div className="list-icon list-icon--muted"><Clock size={18} strokeWidth={2} /></div>
+                <div className="list-label">提醒时间</div>
+                <div className="list-time">{timeLabel}</div>
+                <div className="list-arrow">›</div>
+              </div>
+            )}
           </div>
-        )}
-        <div className="profile-list-item" onClick={onShareApp}>
-          <div className="list-icon"><Share2 size={18} strokeWidth={2} /></div>
-          <div className="list-label">分享App</div>
-          <div className="list-arrow">›</div>
-        </div>
-        <div className="profile-list-item" onClick={onPrivacy}>
-          <div className="list-icon"><Shield size={18} strokeWidth={2} /></div>
-          <div className="list-label">隐私政策</div>
-          <div className="list-arrow">›</div>
-        </div>
-        <div className="profile-list-item" onClick={onCrisis}>
-          <div className="list-icon"><Phone size={18} strokeWidth={2} /></div>
-          <div className="list-label">需要帮助</div>
-          <div className="list-arrow">›</div>
-        </div>
-        <div className="profile-list-item" onClick={onToggleDark}>
-          <div className="list-icon">{darkMode ? <Sun size={18} strokeWidth={2} /> : <Moon size={18} strokeWidth={2} />}</div>
-          <div className="list-label">深色模式</div>
-          <div className="list-arrow">›</div>
-        </div>
-        <div className="profile-list-item" onClick={onAbout}>
-          <div className="list-icon"><Info size={18} strokeWidth={2} /></div>
-          <div className="list-label">关于念起</div>
-          <div className="list-arrow">›</div>
-        </div>
+        </section>
+
+        <section className="profile-section">
+          <h2 className="profile-section-title">支持与分享</h2>
+          <div className="profile-list">
+            <div className="profile-list-item" onClick={onShareApp}>
+              <div className="list-icon"><Share2 size={18} strokeWidth={2} /></div>
+              <div className="list-label">分享 App</div>
+              <div className="list-arrow">›</div>
+            </div>
+            <div className="profile-list-item" onClick={onCrisis}>
+              <div className="list-icon list-icon--alert"><Phone size={18} strokeWidth={2} /></div>
+              <div className="list-label">需要帮助</div>
+              <div className="list-arrow">›</div>
+            </div>
+          </div>
+        </section>
+
+        <section className="profile-section">
+          <h2 className="profile-section-title">关于</h2>
+          <div className="profile-list">
+            <div className="profile-list-item" onClick={onPrivacy}>
+              <div className="list-icon"><Shield size={18} strokeWidth={2} /></div>
+              <div className="list-label">隐私政策</div>
+              <div className="list-arrow">›</div>
+            </div>
+            <div className="profile-list-item" onClick={onAbout}>
+              <div className="list-icon"><Info size={18} strokeWidth={2} /></div>
+              <div className="list-label">关于念起</div>
+              <div className="list-arrow">›</div>
+            </div>
+          </div>
+        </section>
+
+        <div className="profile-footer">念起 · 觉察即自由</div>
       </div>
-      <div style={{ textAlign: 'center', marginTop: 24, color: 'var(--text-muted)', fontSize: 12 }}>念起 · 觉察即自由</div>
     </div>
   )
 }

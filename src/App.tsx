@@ -224,7 +224,6 @@ export default function App() {
           journal={storage.journal}
           expandedId={expandedJournal}
           onToggleExpand={setExpandedJournal}
-          onBack={() => setPage('home')}
           onEdit={item => setEditJournalItem(item)}
           onDelete={id => {
             if (window.confirm('确定删除这条觉察吗？')) storage.deleteJournalItem(id)
@@ -235,11 +234,11 @@ export default function App() {
       {page === 'profile' && (
         <ProfilePage
           userName={storage.userName}
+          streak={streak}
           darkMode={storage.darkMode}
           reminderEnabled={storage.reminder.enabled}
           reminderHour={storage.reminder.hour}
           reminderMinute={storage.reminder.minute}
-          onBack={() => setPage('home')}
           onToggleDark={() => storage.setDarkMode(d => !d)}
           onToggleReminder={handleToggleReminder}
           onOpenReminderTime={() => setShowReminderTime(true)}
