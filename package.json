@@ -19,6 +19,7 @@
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
     "@capacitor/ios": "^8.4.0",
+    "@capacitor/local-notifications": "^8.2.0",
     "@capacitor/preferences": "^8.0.1",
     "@cloudbase/js-sdk": "^2.28.8",
     "@tailwindcss/vite": "^4.3.0",

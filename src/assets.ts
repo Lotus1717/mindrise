@@ -2,7 +2,7 @@
 
 export const OTTER_DEFAULT = '/otter-frames/otter-happy.webp'
 export const OTTER_CURIOUS = '/otter-frames/otter-curious.webp'
-export const OTTER_GLOW = '/otter-frames/otter-glow.webp'
+export const OTTER_GLOW = '/otter-frames/splash-4.webp'
 
 export const SPLASH_FRAMES = [
   '/otter-frames/splash-1.webp', '/otter-frames/splash-2.webp',

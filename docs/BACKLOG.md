@@ -23,80 +23,64 @@
   - [x] 对话收束：「今天先到这里」+ 取消弹窗保留对话
   - [x] 降级文案统一：`fallback.ts` + 再试一次
   - [x] 云函数 uid 限频 + `docs/SECURITY.md` 运维清单
+- [x] **P1 第二梯队优化（2026-06-13）**
+  - [x] 快捷回复 + 30 秒呼吸练习（`ChatPage` + `BreathingModal`）
+  - [x] 觉察弹窗分享卡片（保存前/保存后）
+  - [x] 日记增强：情绪色 7 天图、编辑/删除、`.png`→`.webp` 迁移
+  - [x] 每日觉察提醒（`@capacitor/local-notifications` + Profile 开关）
+  - [x] 上架向：隐私政策、危机热线、分享 App（独立弹窗）
+  - [x] 代码拆分：`App.tsx` → pages / components / hooks
 
 ---
 
 ## 待办（优先）
 
-### P0 · 代码与仓库
+### P0 · 运维
 
-- [x] **提交未入库改动**：云函数、`src/ai.ts`、`src/homeUtils.ts` 等（2026-06-13）
-- [x] **部署云函数**：CloudBase 控制台已更新（含 `summary` 模式与 stream 解析，联调通过）
-- [ ] **部署云函数（限频版）**：控制台同步 `index.js` 限频逻辑
+- [x] **部署云函数（限频版）**：CloudBase 已部署
 - [ ] **轮换 API Key**：见 [`docs/SECURITY.md`](SECURITY.md)
 - [ ] **混元 Token 告警**：见 [`docs/SECURITY.md`](SECURITY.md)
-
-### P1 · 安全与稳定性
-
-- [x] **云函数限频**：按 `context.auth.uid` 滑动窗口（代码已内置，需重新部署）
-- [ ] **控制台叠加限频**：云函数 QPS / IP 限制（可选）
-- [ ] **完善 `cloudfunctions/nianqi-chat/README.md`**：补充 `action: summary` 测试事件
+- [ ] **原生打包同步**：`npm run cap:sync`（Local Notifications 权限写入 iOS/Android）
 
 ### P2 · 体验优化
 
-- [ ] **真 SSE 流式**：HTTP 触发云函数 + 前端 fetch ReadableStream（进一步缩短首字等待）
-- [ ] **降级文案统一**：API 失败时 `SOCRATIC` / `GUIDANCE` 本地库与念念新人设对齐
-- [ ] **旧日记图片路径**：本地已存 `.png` 路径的日记项，增加 `.webp` 兼容或迁移
+- [ ] **真 SSE 流式**：HTTP 触发云函数 + 前端 fetch ReadableStream
+- [ ] **提醒时间自定义**：Profile 选择提醒时刻（当前固定 20:00）
+- [ ] **分享卡片含觉察摘要**：Canvas 绘制用户小结文字
 
 ### P3 · 架构（可选）
 
-- [ ] **数据上云**：日记 / 对话历史从 Capacitor Preferences 迁到 CloudBase 数据库（多设备同步）
-- [ ] **用户体系**：若需绑定微信/手机号，替换纯匿名登录并收紧安全规则
-- [ ] **HTTP 云函数 + 自定义域名**：若 `callFunction` 在特定环境有问题，可备 HTTP 触发方案
+- [ ] **数据上云**：日记 / 对话历史迁 CloudBase 数据库
+- [ ] **用户体系**：微信/手机号登录
+- [ ] **跨会话记忆**：念念记住历史觉察摘要
 
 ---
 
-## 已知限制
+## 目录结构（前端）
 
-| 项 | 说明 |
-|----|------|
-| 流式展示 | `callFunction` 不支持 SSE；当前为服务端 stream 聚合 + 前端逐字动画 |
-| 匿名身份 | 换设备/清缓存后匿名 uid 变化，本地数据不自动同步 |
-| 云函数冷启动 | 首条对话可能多 1～2 秒，可考虑定时预热（非必须） |
-| SDK 体积 | `@cloudbase/js-sdk` 已拆独立 chunk（~742KB），仅进入对话时加载 |
-| 前端 env | 仅需 `VITE_CLOUDBASE_ENV_ID`，无敏感 Key |
+```
+src/
+├── App.tsx                 # 路由与状态编排
+├── hooks/
+│   ├── useAppStorage.ts    # 持久化、日记、提醒
+│   └── useChat.ts          # 对话逻辑
+├── pages/                  # splash / home / chat / journal / profile / onboard
+├── components/             # RecordModal、ShareCardModal、BreathingModal…
+├── constants/              # emotions、chat、legal
+├── utils/journal.ts        # 周图表、webp 迁移
+└── notifications.ts        # 本地通知
+```
 
 ---
 
 ## 部署备忘
 
 ```bash
-# 云函数（CLI 方式，网页端亦可手动粘贴代码）
-npm i -g @cloudbase/cli && tcb login
-# 控制台配置 AI_API_KEY 后：
-npm run deploy:fn
-
-# 本地开发
-cp .env.example .env.local   # 填 VITE_CLOUDBASE_ENV_ID
-npm run dev
+npm run cap:sync    # Web 构建 + 同步原生（含 Local Notifications）
+npm run deploy:fn   # 云函数
 ```
 
-**控制台必查：** 匿名登录已开 · 安全规则 `"auth != null"` · `nianqi-chat` 环境变量 `AI_API_KEY`
-
-**云端测试（觉察小结）：**
-
-```json
-{
-  "action": "summary",
-  "emotion": "焦虑",
-  "guide": "此刻，你身体里有一个声音在低语……",
-  "userName": "朋友",
-  "messages": [
-    { "role": "assistant", "content": "胸口有感觉吗？" },
-    { "role": "user", "content": "有点闷，像一团灰色的乱麻。" }
-  ]
-}
-```
+**控制台必查：** 匿名登录已开 · 安全规则 `"auth != null"` · `AI_API_KEY`
 
 ---
 
@@ -104,12 +88,10 @@ npm run dev
 
 | 文件 | 用途 |
 |------|------|
-| `cloudfunctions/nianqi-chat/index.js` | 云函数入口，`chat` / `summary`，混元 stream |
-| `cloudfunctions/nianqi-chat/prompt.js` | 念念系统提示词 + 觉察小结提示词 |
-| `src/cloudbase.ts` | 匿名登录 + callFunction |
-| `src/ai.ts` | 对话 API、觉察小结、逐字展示 |
-| `src/homeUtils.ts` | 今日一卡、日期/问候语、今日日记查询 |
-| `src/fallback.ts` | 离线降级与引导文案 |
-| `docs/SECURITY.md` | Key 轮换、用量告警、限频说明 |
-| `cloudbaserc.json` | 云函数部署配置 |
-| `.env.example` | 前端环境变量模板 |
+| `cloudfunctions/nianqi-chat/index.js` | 云函数入口，`chat` / `summary`，uid 限频 |
+| `src/hooks/useChat.ts` | 对话状态与 API |
+| `src/hooks/useAppStorage.ts` | 本地存储与提醒设置 |
+| `src/notifications.ts` | Capacitor 本地通知 |
+| `src/constants/legal.ts` | 隐私政策、危机热线、分享文案 |
+| `docs/SECURITY.md` | Key 轮换、用量告警 |
+| `docs/PRODUCT_EVAL.md` | 产品维度打分与阶段评价（基线 vs 当前） |

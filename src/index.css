@@ -537,5 +537,10 @@ body {
   .chat-input-bar { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
 }
 
+/* ─── 念念头像（圆形裁剪 + 发光阴影） ─── */
+.otter-round {
+  object-fit: cover;
+}
+
 /* ─── 工具 ─── */
 canvas { image-rendering: -webkit-optimize-contrast; }
