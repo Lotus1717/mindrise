@@ -113,38 +113,40 @@ export function ChatPage({
         )}
         <div ref={endRef} />
       </div>
-      {showTip && <div className="otter-tip-bubble">{tipText}</div>}
-      {msgs.length <= 2 && !typing && (
-        <div className="chat-quick-replies">
-          {QUICK_REPLIES.map(q => (
-            <button
-              key={q}
-              type="button"
-              className="tag-chip chat-quick-chip"
-              onClick={() => onQuickReply(q)}
-            >
-              {q}
-            </button>
-          ))}
+      <div className="chat-compose">
+        {showTip && <div className="otter-tip-bubble">{tipText}</div>}
+        {msgs.length <= 2 && !typing && (
+          <div className="chat-quick-replies">
+            {QUICK_REPLIES.map(q => (
+              <button
+                key={q}
+                type="button"
+                className="tag-chip chat-quick-chip"
+                onClick={() => onQuickReply(q)}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="chat-input-bar">
+          <input
+            className="chat-input"
+            placeholder="慢慢来，我在听……"
+            value={input}
+            disabled={typing}
+            onChange={e => onInputChange(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !typing && onSend()}
+          />
+          <button
+            className="chat-send"
+            onClick={onSend}
+            disabled={typing || !input.trim()}
+            style={{ opacity: typing || !input.trim() ? 0.45 : 1 }}
+          >
+            ↑
+          </button>
         </div>
-      )}
-      <div className="chat-input-bar">
-        <input
-          className="chat-input"
-          placeholder="慢慢来，我在听……"
-          value={input}
-          disabled={typing}
-          onChange={e => onInputChange(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && !typing && onSend()}
-        />
-        <button
-          className="chat-send"
-          onClick={onSend}
-          disabled={typing || !input.trim()}
-          style={{ opacity: typing || !input.trim() ? 0.45 : 1 }}
-        >
-          ↑
-        </button>
       </div>
     </div>
   )

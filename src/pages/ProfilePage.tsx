@@ -1,5 +1,4 @@
-import { Bell, Share2, Shield, Phone, Moon, Sun, Info, Clock, Flame } from 'lucide-react'
-import { OTTER_GLOW } from '../assets'
+import { Bell, Shield, Phone, Moon, Sun, Info, Clock, Flame } from 'lucide-react'
 import { streakLabel } from '../utils/streak'
 
 type ProfilePageProps = {
@@ -13,8 +12,6 @@ type ProfilePageProps = {
   onToggleReminder: () => void
   onOpenReminderTime: () => void
   onEditName: () => void
-  onHug: () => void
-  onShareApp: () => void
   onPrivacy: () => void
   onCrisis: () => void
   onAbout: () => void
@@ -31,8 +28,6 @@ export function ProfilePage({
   onToggleReminder,
   onOpenReminderTime,
   onEditName,
-  onHug,
-  onShareApp,
   onPrivacy,
   onCrisis,
   onAbout,
@@ -52,27 +47,17 @@ export function ProfilePage({
 
       <div className="profile-body">
         <section className="profile-header">
-          <div className="profile-avatar-wrap">
-            <img
-              decoding="async"
-              loading="lazy"
-              src={OTTER_GLOW}
-              alt="念念"
-              className="profile-avatar-img otter-round"
-            />
-            <span className="profile-avatar-badge" aria-hidden>念</span>
-          </div>
           <div className="profile-name">{userName}</div>
-          {streakText && (
-            <div className="profile-streak">
-              <Flame size={14} strokeWidth={2} />
-              <span>{streakText}</span>
-            </div>
-          )}
-          <button type="button" className="profile-edit" onClick={onEditName}>编辑昵称 ›</button>
+          <div className="profile-header-meta">
+            {streakText && (
+              <div className="profile-streak">
+                <Flame size={12} strokeWidth={2} />
+                <span>{streakText}</span>
+              </div>
+            )}
+            <button type="button" className="profile-edit" onClick={onEditName}>编辑昵称 ›</button>
+          </div>
         </section>
-
-        <button type="button" className="profile-hug-btn" onClick={onHug}>🤗 抱抱念念</button>
 
         <section className="profile-section">
           <h2 className="profile-section-title">觉察习惯</h2>
@@ -101,13 +86,8 @@ export function ProfilePage({
         </section>
 
         <section className="profile-section">
-          <h2 className="profile-section-title">支持与分享</h2>
+          <h2 className="profile-section-title">支持</h2>
           <div className="profile-list">
-            <div className="profile-list-item" onClick={onShareApp}>
-              <div className="list-icon"><Share2 size={18} strokeWidth={2} /></div>
-              <div className="list-label">分享 App</div>
-              <div className="list-arrow">›</div>
-            </div>
             <div className="profile-list-item" onClick={onCrisis}>
               <div className="list-icon list-icon--alert"><Phone size={18} strokeWidth={2} /></div>
               <div className="list-label">需要帮助</div>

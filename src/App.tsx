@@ -16,9 +16,8 @@ import { ShareCardModal } from './components/ShareCardModal'
 import { BreathingModal } from './components/BreathingModal'
 import { PrivacyModal } from './components/modals/PrivacyModal'
 import { CrisisModal } from './components/modals/CrisisModal'
-import { AppShareModal } from './components/modals/AppShareModal'
-import { HugModal } from './components/modals/HugModal'
 import { AboutModal } from './components/modals/AboutModal'
+import { HugModal } from './components/modals/HugModal'
 import { EditNameModal } from './components/modals/EditNameModal'
 import { JournalEditModal } from './components/modals/JournalEditModal'
 import { QuickCheckInModal } from './components/modals/QuickCheckInModal'
@@ -41,7 +40,6 @@ export default function App() {
 
   const [showRecord, setShowRecord] = useState(false)
   const [showShareCard, setShowShareCard] = useState(false)
-  const [showAppShare, setShowAppShare] = useState(false)
   const [showBreathing, setShowBreathing] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showCrisis, setShowCrisis] = useState(false)
@@ -173,7 +171,7 @@ export default function App() {
   }
 
   return (
-    <div className={`app-container ${storage.darkMode ? 'dark-mode' : ''}`}>
+    <div className={`app-container ${storage.darkMode ? 'dark-mode' : ''}${page === 'chat' ? ' app-container--chat' : ''}`}>
       {page !== 'chat' && (
         <img className="otter-float" src={OTTER_DEFAULT} alt="戳戳念念" onClick={openHug} />
       )}
@@ -243,8 +241,6 @@ export default function App() {
           onToggleReminder={handleToggleReminder}
           onOpenReminderTime={() => setShowReminderTime(true)}
           onEditName={() => setShowEditName(true)}
-          onHug={() => setShowHug(true)}
-          onShareApp={() => setShowAppShare(true)}
           onPrivacy={() => setShowPrivacy(true)}
           onCrisis={() => setShowCrisis(true)}
           onAbout={() => setShowAbout(true)}
@@ -271,7 +267,6 @@ export default function App() {
       )}
 
       {showShareCard && <ShareCardModal card={card} onClose={() => setShowShareCard(false)} />}
-      {showAppShare && <AppShareModal onClose={() => setShowAppShare(false)} />}
       {showBreathing && <BreathingModal onClose={() => setShowBreathing(false)} />}
       {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
       {showCrisis && <CrisisModal onClose={() => setShowCrisis(false)} />}

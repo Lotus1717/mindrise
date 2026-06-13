@@ -22,4 +22,15 @@ export const CRISIS_HOTLINES = [
   { name: '生命热线', number: '400-161-9995', note: '24小时' },
 ]
 
-export const APP_SHARE_TEXT = '我在用「念起」做每日情绪觉察，念念是一只温暖的小水獭 🦦 觉察即自由'
+export const ABOUT_TAGLINE = '觉察即自由'
+
+export const ABOUT_BODY = `一只叫念念的小水獭，陪你看见情绪的形状。
+我们相信，每一次觉察，都是一次温柔的自我靠近。`
+
+export const ABOUT_DISCLAIMER = '「念起」不替代专业心理咨询。如有严重困扰，请寻求专业帮助。'
+
+export const APP_SHARE_TEXT = `念起 · ${ABOUT_TAGLINE}
+
+${ABOUT_BODY}
+
+${ABOUT_DISCLAIMER}`

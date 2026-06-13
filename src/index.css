@@ -5,27 +5,30 @@
 body {
   font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   min-height: 100vh;
+  height: 100%;
   color: var(--text-dark);
   overflow-x: hidden;
   overscroll-behavior: none;
 }
 
+#root { height: 100%; min-height: 100%; }
+
 /* ─── 启动页 ─── */
 .splash {
   min-height: 100vh; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  background: linear-gradient(180deg, #1A3B4C 0%, #2C5A6E 60%, #4A7A8C 100%);
+  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 55%, var(--card-bg) 100%);
   position: relative; overflow: hidden;
 }
 .splash-moon {
-  position: absolute; top: 8%; right: 15%;
-  width: 60px; height: 60px;
-  background: radial-gradient(circle, #FFF8DC 40%, transparent 70%);
-  border-radius: 50%; opacity: 0.8;
+  position: absolute; top: 6%; right: 12%;
+  width: 72px; height: 72px;
+  background: radial-gradient(circle, rgba(255,243,214,0.95) 0%, rgba(255,229,180,0.45) 45%, transparent 70%);
+  border-radius: 50%; opacity: 0.85;
 }
 .splash-water {
-  position: absolute; bottom: 0; left: 0; right: 0; height: 35%;
-  background: linear-gradient(180deg, #1A3B4C 0%, #0D2535 100%);
+  position: absolute; bottom: 0; left: 0; right: 0; height: 38%;
+  background: linear-gradient(180deg, transparent 0%, rgba(200,223,240,0.35) 35%, rgba(254,249,240,0.85) 100%);
 }
 .splash-otter-wrap {
   position: relative; width: 200px; height: 200px; z-index: 2;
@@ -34,7 +37,7 @@ body {
 .splash-otter {
   width: 200px; height: 200px; border-radius: 50%; object-fit: cover;
   position: absolute; inset: 0;
-  box-shadow: 0 0 60px rgba(255,229,180,0.5);
+  box-shadow: 0 0 0 6px rgba(255,249,240,0.85), 0 8px 36px rgba(201,168,130,0.35);
   transition: opacity 0.55s ease;
   will-change: opacity;
 }
@@ -50,29 +53,35 @@ body {
   100% { opacity: 1; transform: scale(1); }
 }
 .splash-brand { position: relative; z-index: 2; text-align: center; margin-top: -10px; }
-.splash-brand h1 { font-size: 42px; color: #FFF; font-weight: 700; letter-spacing: 8px; text-shadow: 0 2px 20px rgba(255,229,180,0.4); }
-.splash-brand p { color: rgba(255,255,255,0.7); font-size: 14px; letter-spacing: 4px; margin-top: 8px; }
+.splash-brand h1 {
+  font-size: 42px; color: var(--text-dark); font-weight: 700; letter-spacing: 8px;
+  text-shadow: 0 2px 16px rgba(255,229,180,0.35);
+}
+.splash-brand p { color: var(--text-muted); font-size: 14px; letter-spacing: 4px; margin-top: 8px; }
 .splash-enter {
   position: relative; z-index: 2; margin-top: 40px; padding: 14px 48px;
-  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
-  border-radius: 32px; color: #FFF; font-size: 16px; cursor: pointer;
-  backdrop-filter: blur(10px); transition: background 0.25s, transform 0.25s; letter-spacing: 2px;
+  background: linear-gradient(135deg, var(--otter-body), var(--accent-warm));
+  border: none; border-radius: 32px; color: #FFF; font-size: 16px; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(201,168,130,0.28);
+  transition: transform 0.25s, box-shadow 0.25s; letter-spacing: 2px; font-family: inherit;
 }
-.splash-enter:hover { background: rgba(255,255,255,0.25); transform: scale(1.04); }
+.splash-enter:hover { transform: scale(1.04); box-shadow: 0 6px 20px rgba(201,168,130,0.35); }
 .splash-enter:active { transform: scale(0.97); }
 .splash-disclaimer {
   position: relative; z-index: 2; margin-top: 24px; padding: 16px 24px;
-  background: rgba(255,255,255,0.1); border-radius: 16px; border: 1px solid rgba(255,255,255,0.2);
-  max-width: 320px; text-align: center;
+  background: var(--card-bg); border-radius: 16px; border: 1px solid var(--card-border);
+  box-shadow: 0 2px 12px rgba(60,46,43,0.06); max-width: 320px; text-align: center;
 }
-.splash-disclaimer p { color: rgba(255,255,255,0.8); font-size: 12px; line-height: 1.6; }
+.splash-disclaimer p { color: var(--text-muted); font-size: 12px; line-height: 1.6; }
 
 /* ─── 主容器 + 深色模式（纯CSS变量，无filter） ─── */
 .app-container {
-  max-width: 430px; margin: 0 auto; min-height: 100vh; position: relative;
-  padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  max-width: 430px; margin: 0 auto;
+  height: 100%; min-height: 0; position: relative;
+  overflow-x: hidden; overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   background: var(--bg-top, #FEF9F0);
-  /* 背景色通过 CSS 变量切换，transition 仅针对背景色，不触发整树重绘 */
   transition: background 0.3s;
 }
 /* 深色模式：直接修改变量值，浏览器只需重绘 paint */
@@ -83,6 +92,12 @@ body {
   --text-muted: #999;
   --card-bg: #1E1E2E;
   --card-border: rgba(255,255,255,0.08);
+}
+.app-container--chat {
+  overflow: hidden;
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ─── 状态栏 ─── */
@@ -292,7 +307,7 @@ body {
   25% { transform: translateY(-8px) rotate(2deg); }
   75% { transform: translateY(-4px) rotate(-2deg); }
 }
-.journal-page .otter-float, .onboard-page .otter-float { display: none; }
+.journal-page .otter-float, .onboard-page .otter-float, .profile-page .otter-float { display: none; }
 
 /* ─── 底部导航 ─── */
 .bottom-nav {
@@ -321,7 +336,8 @@ body {
 
 /* ─── 对话页 ─── */
 .chat-page {
-  min-height: 100vh; display: flex; flex-direction: column;
+  flex: 1; min-height: 0; height: 100%;
+  display: flex; flex-direction: column; overflow: hidden;
   background: linear-gradient(180deg, #FDF7F0 0%, #F9EFE5 100%); transition: background 0.3s;
 }
 .dark-mode .chat-page { background: linear-gradient(180deg, #12121E 0%, #181828 100%); }
@@ -329,7 +345,7 @@ body {
 .chat-header {
   display: flex; align-items: center; padding: 12px 20px;
   background: rgba(200,223,240,0.85); backdrop-filter: blur(12px);
-  gap: 12px; position: sticky; top: 0; z-index: 10;
+  gap: 12px; flex-shrink: 0; z-index: 10;
   padding-top: max(12px, env(safe-area-inset-top)); transition: background 0.3s;
 }
 .dark-mode .chat-header { background: rgba(18,18,30,0.85); }
@@ -342,9 +358,9 @@ body {
 .chat-header-card span { font-size: 14px; font-weight: 600; color: var(--text-dark); }
 
 .chat-messages {
-  flex: 1; padding: 20px 20px 100px;
+  flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 20px 20px 12px;
   display: flex; flex-direction: column; gap: 16px;
-  /* contain: layout style 可限制重排区域，大幅降低长列表滚动时的重绘成本 */
   contain: layout style;
 }
 
@@ -373,15 +389,20 @@ body {
   background: rgba(232,180,162,0.15); border-radius: 20px 20px 4px 20px; color: var(--text-dark);
 }
 
-.chat-input-bar {
-  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 100%; max-width: 430px; padding: 12px 16px;
+.chat-compose {
+  flex-shrink: 0; display: flex; flex-direction: column;
   background: rgba(255,255,255,0.95); backdrop-filter: blur(16px);
-  display: flex; gap: 10px; align-items: center;
   border-top: 1px solid rgba(232,180,162,0.15);
-  padding-bottom: max(12px, env(safe-area-inset-bottom)); z-index: 25; transition: background 0.3s;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  transition: background 0.3s;
 }
-.dark-mode .chat-input-bar { background: rgba(18,18,30,0.95); }
+.dark-mode .chat-compose { background: rgba(18,18,30,0.95); }
+
+.chat-input-bar {
+  width: 100%; padding: 12px 16px 0;
+  display: flex; gap: 10px; align-items: center;
+}
+.dark-mode .chat-input-bar { background: transparent; }
 .chat-input {
   flex: 1; padding: 12px 16px; background: var(--card-bg, #FEF9F0);
   border: 1.5px solid var(--card-border, #F5EDE3); border-radius: 24px; font-size: 15px;
@@ -415,15 +436,16 @@ body {
 }
 
 .otter-tip-bubble {
-  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+  margin: 8px 16px 0; align-self: center;
   background: rgba(255,255,255,0.95); border: 1.5px solid rgba(232,180,162,0.3);
   border-radius: 20px; padding: 10px 18px; font-size: 13px; color: var(--text-muted);
   box-shadow: 0 4px 16px rgba(60,46,43,0.10);
-  animation: tipBubbleIn 0.4s ease; white-space: nowrap; z-index: 40;
+  animation: tipBubbleIn 0.4s ease; white-space: nowrap; max-width: calc(100% - 32px);
+  text-align: center;
 }
 @keyframes tipBubbleIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ─── 日记列表页 ─── */
@@ -502,63 +524,45 @@ body {
 .journal-collapse-hint { font-size: 11px; color: var(--text-muted); text-align: right; margin-top: 10px; opacity: 0.8; }
 
 /* ─── 个人页 ─── */
-.profile-page { padding: 0 0 80px; min-height: 100%; }
-.profile-body { padding: 8px 20px 0; }
+.profile-page { padding: 0; min-height: min-content; }
+.profile-body { padding: 6px 20px 16px; }
 .profile-header {
-  display: flex; flex-direction: column; align-items: center; padding: 28px 24px 22px;
-  background: var(--card-bg, #FEF9F0); border-radius: 24px; margin-bottom: 16px;
+  padding: 14px 16px; background: var(--card-bg, #FEF9F0); border-radius: 18px; margin-bottom: 12px;
   box-shadow: 0 2px 12px rgba(60,46,43,0.06); transition: background 0.3s;
   border: 1px solid rgba(245,237,227,0.8);
 }
+.profile-header-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+}
 .dark-mode .profile-header { background: #1E1E2E; border-color: rgba(255,255,255,0.06); }
-.profile-avatar-wrap { position: relative; margin-bottom: 14px; }
-.profile-avatar-img {
-  width: 76px; height: 76px; border-radius: 50%; object-fit: cover;
-  box-shadow: 0 0 32px rgba(255,229,180,0.55);
+.profile-name {
+  font-size: 20px; font-weight: 700; color: var(--text-dark); margin-bottom: 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.profile-avatar-badge {
-  position: absolute; bottom: -2px; right: -4px; width: 26px; height: 26px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent-warm), var(--accent-green));
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; color: #fff; font-weight: 700; border: 2px solid var(--card-bg);
-}
-.dark-mode .profile-avatar-badge { border-color: #1E1E2E; }
-.profile-name { font-size: 22px; font-weight: 700; color: var(--text-dark); margin-bottom: 6px; }
 .profile-streak {
-  display: inline-flex; align-items: center; gap: 5px; margin-bottom: 10px;
-  padding: 4px 10px; border-radius: 16px; font-size: 12px; font-weight: 600; color: #8B5A3C;
+  display: inline-flex; align-items: center; gap: 4px; margin-bottom: 0;
+  padding: 3px 8px; border-radius: 14px; font-size: 11px; font-weight: 600; color: #8B5A3C;
   background: linear-gradient(135deg, rgba(255,229,180,0.4), rgba(232,180,162,0.2));
 }
 .dark-mode .profile-streak { color: #E8C4A8; }
 .profile-edit {
-  background: none; border: none; padding: 4px 8px; font-size: 13px; color: var(--accent-warm);
+  background: none; border: none; padding: 0; font-size: 12px; color: var(--accent-warm);
   cursor: pointer; font-family: inherit;
 }
 .profile-edit:active { opacity: 0.7; }
-.profile-section { margin-bottom: 18px; }
+.profile-section { margin-bottom: 12px; }
 .profile-section-title {
   font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.5px;
-  margin: 0 4px 8px; text-transform: none;
+  margin: 0 4px 6px;
 }
-.profile-hug-btn {
-  width: 100%; padding: 16px; margin-bottom: 22px;
-  background: linear-gradient(135deg, var(--otter-body), var(--accent-warm));
-  color: #FFF; border: none; border-radius: 20px; font-size: 16px; font-weight: 600;
-  cursor: pointer; box-shadow: 0 4px 16px rgba(201,168,130,0.3);
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1); will-change: transform;
-  font-family: inherit;
-}
-.profile-hug-btn:hover { transform: scale(1.02); }
-.profile-hug-btn:active { transform: scale(0.98); }
 .profile-list {
-  background: var(--card-bg, #FEF9F0); border-radius: 20px; overflow: hidden;
+  background: var(--card-bg, #FEF9F0); border-radius: 18px; overflow: hidden;
   box-shadow: 0 2px 12px rgba(60,46,43,0.06); transition: background 0.3s;
   border: 1px solid rgba(245,237,227,0.65);
 }
 .dark-mode .profile-list { background: #1E1E2E; border-color: rgba(255,255,255,0.06); }
 .profile-list-item {
-  padding: 15px 18px; display: flex; align-items: center; gap: 14px;
+  padding: 13px 16px; display: flex; align-items: center; gap: 12px;
   border-bottom: 1px solid var(--card-border, #F5EDE3);
   cursor: pointer; transition: background 0.15s;
   -webkit-tap-highlight-color: transparent;
@@ -567,7 +571,7 @@ body {
 .profile-list-item:active { background: rgba(232,180,162,0.08); }
 .dark-mode .profile-list-item:active { background: rgba(255,255,255,0.05); }
 .list-icon {
-  width: 36px; height: 36px; border-radius: 50%;
+  width: 34px; height: 34px; border-radius: 50%;
   background: rgba(167,197,189,0.2); display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; color: var(--text-dark);
 }
@@ -576,9 +580,9 @@ body {
 .list-icon--muted { opacity: 0.55; background: rgba(167,197,189,0.12); }
 .list-label { flex: 1; font-size: 15px; color: var(--text-dark); min-width: 0; }
 .list-arrow { color: var(--text-muted); font-size: 14px; flex-shrink: 0; }
-.profile-list-item--sub { padding-left: 24px; background: rgba(167,197,189,0.06); }
+.profile-list-item--sub { padding-left: 22px; background: rgba(167,197,189,0.06); }
 .dark-mode .profile-list-item--sub { background: rgba(255,255,255,0.03); }
-.profile-footer { text-align: center; margin-top: 8px; color: var(--text-muted); font-size: 12px; padding-bottom: 12px; opacity: 0.85; }
+.profile-footer { text-align: center; margin-top: 4px; color: var(--text-muted); font-size: 12px; padding-bottom: 8px; opacity: 0.85; }
 .toggle-switch {
   width: 44px; height: 26px; border-radius: 13px; flex-shrink: 0; position: relative;
   background: rgba(0,0,0,0.12); transition: background 0.2s;
@@ -590,11 +594,10 @@ body {
 }
 .toggle-switch--on .toggle-switch-knob { left: 21px; }
 .chat-quick-replies {
-  position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
-  width: 100%; max-width: 430px; padding: 0 16px; display: flex; flex-wrap: wrap; gap: 8px;
-  justify-content: center; z-index: 24; pointer-events: none;
+  width: 100%; padding: 8px 16px 0; display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center;
 }
-.chat-quick-chip { font-size: 12px !important; padding: 6px 12px !important; pointer-events: auto; background: var(--card-bg); }
+.chat-quick-chip { font-size: 12px !important; padding: 6px 12px !important; background: var(--card-bg); }
 
 /* ─── 引导页 ─── */
 .onboard-page {
@@ -728,7 +731,7 @@ body {
 @supports (padding: max(0px)) {
   .status-bar { padding-top: max(12px, env(safe-area-inset-top)); }
   .bottom-nav { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
-  .chat-input-bar { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .chat-compose { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
 }
 
 /* ─── 念念头像（圆形裁剪 + 发光阴影） ─── */

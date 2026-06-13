@@ -1,10 +1,34 @@
+import { useCallback, useState } from 'react'
 import { OTTER_GLOW } from '../../assets'
+import { APP_SHARE_TEXT, ABOUT_BODY, ABOUT_DISCLAIMER } from '../../constants/legal'
 
 type AboutModalProps = {
   onClose: () => void
 }
 
 export function AboutModal({ onClose }: AboutModalProps) {
+  const [copied, setCopied] = useState(false)
+
+  const handleShare = useCallback(async () => {
+    const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> }
+    try {
+      if (nav.share) {
+        await nav.share({ title: '念起', text: APP_SHARE_TEXT })
+        onClose()
+        return
+      }
+    } catch {
+      // user cancelled or share unavailable
+    }
+    try {
+      await navigator.clipboard.writeText(APP_SHARE_TEXT)
+      setCopied(true)
+      setTimeout(onClose, 1200)
+    } catch {
+      setCopied(true)
+    }
+  }, [onClose])
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', padding: '28px 24px' }}>
@@ -26,16 +50,17 @@ export function AboutModal({ onClose }: AboutModalProps) {
         <div style={{
           fontSize: 14, color: 'var(--text-dark)', lineHeight: 1.9, textAlign: 'left',
           background: 'rgba(0,0,0,0.02)', borderRadius: 14, padding: '14px 16px', marginBottom: 18,
+          whiteSpace: 'pre-line',
         }}
         >
-          一只叫念念的小水獭，陪你看见情绪的形状。
-          <br />
-          我们相信，每一次觉察，都是一次温柔的自我靠近。
-          <br />
-          <br />
-          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>「念起」不替代专业心理咨询。如有严重困扰，请寻求专业帮助。</span>
+          {ABOUT_BODY}
+          {'\n\n'}
+          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{ABOUT_DISCLAIMER}</span>
         </div>
-        <button className="btn-save" style={{ width: '100%' }} onClick={onClose}>知道了</button>
+        <button type="button" className="btn-save" style={{ width: '100%' }} onClick={handleShare}>
+          {copied ? '已复制 ✓' : '分享给朋友'}
+        </button>
+        <button type="button" className="btn-ghost-full" onClick={onClose}>关闭</button>
       </div>
     </div>
   )
