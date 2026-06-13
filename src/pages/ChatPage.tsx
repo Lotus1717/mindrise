@@ -54,7 +54,7 @@ export function ChatPage({
           <ArrowLeft size={20} strokeWidth={2} style={{ cursor: 'pointer' }} onClick={onBack} />
         </div>
         <div className="chat-header-card" onClick={onBack}>
-          <img decoding="async" src={card.cardImg} alt={card.word} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 10 }} />
+          <img decoding="async" src={card.cardImg} alt={card.word} className="card-thumb card-thumb--sm" />
           <span style={{ fontWeight: 600 }}>{card.word}</span>
         </div>
         <button

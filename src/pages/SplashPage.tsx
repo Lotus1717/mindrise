@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { SPLASH_FRAMES } from '../assets'
+import { SPLASH_FOOTER_NOTE } from '../constants/legal'
 import { preloadImage, preloadImages } from '../preload'
 
 type SplashPageProps = {
@@ -51,7 +52,7 @@ export function SplashPage({ onboarded, onEnter }: SplashPageProps) {
         开启觉察之旅
       </button>
       <div className="splash-disclaimer">
-        <p>「念起」不替代专业心理咨询。如有严重心理困扰，请寻求专业帮助。</p>
+        <p>{SPLASH_FOOTER_NOTE}</p>
       </div>
     </div>
   )

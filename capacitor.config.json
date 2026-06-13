@@ -1,5 +1,10 @@
 {
   "appId": "ai.mindrise.nianqi",
   "appName": "念起",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "LocalNotifications": {
+      "presentationOptions": ["badge", "sound", "banner", "list"]
+    }
+  }
 }

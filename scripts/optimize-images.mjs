@@ -42,8 +42,11 @@ async function convertOne({ rel, full }) {
   const w = meta.width ?? cfg.maxWidth
   const resize = w > cfg.maxWidth ? { width: cfg.maxWidth } : undefined
 
-  await sharp(full)
-    .resize(resize)
+  const pipeline = rel.startsWith('cards/')
+    ? sharp(full).trim({ threshold: 12 }).resize(640, 857, { fit: 'cover', position: 'centre' })
+    : sharp(full).resize(resize)
+
+  await pipeline
     .webp({ quality: cfg.quality, effort: 4 })
     .toFile(out)
 

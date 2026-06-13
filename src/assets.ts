@@ -5,7 +5,6 @@ export const OTTER_CURIOUS = '/otter-frames/otter-curious.webp'
 export const OTTER_GLOW = '/otter-frames/splash-4.webp'
 
 export const SPLASH_FRAMES = [
-  '/otter-frames/splash-1.webp', '/otter-frames/splash-2.webp',
   '/otter-frames/splash-3.webp', '/otter-frames/splash-4.webp',
   '/otter-frames/frame-1.webp', '/otter-frames/frame-2.webp',
   '/otter-frames/frame-3.webp',

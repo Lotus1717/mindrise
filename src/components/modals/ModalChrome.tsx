@@ -13,8 +13,10 @@ export function ModalChrome({ title, subtitle, children, onDismiss }: ModalChrom
     <div className="modal-overlay" onClick={onDismiss}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()}>
         <div className="modal-handle" aria-hidden />
-        <div className="modal-title">{title}</div>
-        {subtitle && <p className="modal-subtitle">{subtitle}</p>}
+        <div className="modal-header">
+          <div className="modal-title">{title}</div>
+          {subtitle && <p className="modal-subtitle">{subtitle}</p>}
+        </div>
         <div className="modal-body">{children}</div>
       </div>
     </div>

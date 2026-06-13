@@ -70,13 +70,11 @@ export function HomePage({
             <div className={`daily-card-badge ${todayEntry ? 'daily-card-badge-done' : ''}`}>
               {todayEntry ? '今日已完成 ✓' : '今日情绪卡'}
             </div>
-            <div style={{ position: 'relative', width: '100%', height: 215, borderRadius: 16, overflow: 'hidden', marginBottom: 20 }}>
-              <img decoding="async" src={card.cardImg} alt={card.word} style={{ width: '100%', height: '100%', objectFit: 'cover' }} fetchPriority="high" />
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: `linear-gradient(160deg,${CARD_COLORS[card.word]}cc,${CARD_COLORS[card.word]}99)`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
+            <div className="card-visual">
+              <img decoding="async" src={card.cardImg} alt={card.word} fetchPriority="high" />
+              <div
+                className="card-visual-overlay"
+                style={{ background: `linear-gradient(160deg,${CARD_COLORS[card.word]}cc,${CARD_COLORS[card.word]}99)` }}
               >
                 <div className="card-art-orb" />
               </div>

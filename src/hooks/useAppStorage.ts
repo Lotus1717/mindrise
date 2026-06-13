@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react'
+import { flushSync } from 'react-dom'
 import { storageGet, storageSet } from '../storage'
 import { migrateJournalItems } from '../utils/journal'
-import { loadReminderSettings, saveReminderSettings } from '../notifications'
+import {
+  loadReminderSettings,
+  persistReminderPreference,
+  syncReminderIfNeeded,
+  syncReminderToNative,
+  type ReminderSaveResult,
+} from '../notifications'
 import type { ChatMsg, JournalItem, ReminderSettings } from '../types'
 
 export function useAppStorage() {
@@ -30,6 +37,7 @@ export function useAppStorage() {
       if (chat) setChatHistory(chat)
       setReminder(rem)
       setLoaded(true)
+      void syncReminderIfNeeded(rem)
     })()
   }, [])
 
@@ -43,10 +51,28 @@ export function useAppStorage() {
     storageSet('nianqi-onboarded', '1')
   }
 
-  const updateReminder = async (next: ReminderSettings) => {
-    setReminder(next)
-    await saveReminderSettings(next)
+  /** 只写偏好，不阻塞在系统权限上 */
+  const updateReminder = async (next: ReminderSettings): Promise<ReminderSaveResult> => {
+    let prev!: ReminderSettings
+    flushSync(() => {
+      setReminder(current => {
+        prev = current
+        return next
+      })
+    })
+
+    try {
+      await persistReminderPreference(next)
+      return { ok: true }
+    } catch (err) {
+      console.warn('[reminder] persist failed', err)
+      flushSync(() => setReminder(prev))
+      return { ok: false, reason: 'schedule_failed' }
+    }
   }
+
+  /** 弹窗关闭后再调：请求权限 + 注册通知 */
+  const syncReminderNative = (settings: ReminderSettings) => syncReminderToNative(settings)
 
   const updateJournalItem = (id: string, patch: Partial<JournalItem>) => {
     setJournal(j => j.map(item => item.id === id ? { ...item, ...patch } : item))
@@ -62,7 +88,7 @@ export function useAppStorage() {
     onboarded, finishOnboard,
     journal, setJournal, updateJournalItem, deleteJournalItem,
     chatHistory, setChatHistory,
-    reminder, updateReminder,
+    reminder, updateReminder, syncReminderNative,
     loaded,
   }
 }

@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { CARD_COLORS, MOOD_EMOJI, MOOD_LABELS } from '../constants/emotions'
 import { buildWeekChartData, normalizeCardImg, WEEK_CHART_MAX } from '../utils/journal'
 import type { JournalItem } from '../types'
@@ -72,16 +73,20 @@ export function JournalPage({
                 <div className="journal-item-accent" style={{ background: CARD_COLORS[item.emotion] }} />
                 <div className="journal-item-main">
                   <div className="journal-item-head">
-                    <div className="journal-item-meta">
+                    <div className="journal-item-date-row">
                       <span className="journal-item-date">{item.date} {item.day}</span>
+                      {item.kind === 'quick' && <span className="journal-item-kind">· 轻量</span>}
+                    </div>
+                    <div className="journal-item-meta">
                       <span className="journal-emotion-tag" style={{ color: CARD_COLORS[item.emotion], background: `${CARD_COLORS[item.emotion]}25` }}>
                         {item.emotion}
                       </span>
-                      {item.kind === 'quick' && <span className="journal-kind-tag">轻量</span>}
+                      {item.rating > 0 && (
+                        <span className="journal-item-rating" title={MOOD_LABELS[item.rating]}>
+                          {MOOD_EMOJI[item.rating]}
+                        </span>
+                      )}
                     </div>
-                    <span className="journal-item-rating">
-                      {item.rating ? `${MOOD_EMOJI[item.rating]} ${MOOD_LABELS[item.rating]}` : '未评分'}
-                    </span>
                   </div>
                   <p className={`journal-preview ${isOpen ? 'journal-preview--open' : ''}`}>{item.summary}</p>
                   {isOpen && (
@@ -95,27 +100,28 @@ export function JournalPage({
                       )}
                       {cardImg && (
                         <div className="journal-card-ref">
-                          <img decoding="async" src={cardImg} alt="" loading="lazy" />
-                          <span>来自「{item.emotion}」卡牌</span>
+                          <img decoding="async" src={cardImg} alt="今日卡牌" title="今日卡牌" loading="lazy" />
                         </div>
                       )}
                       <div className="journal-item-actions">
                         <button
                           type="button"
-                          className="btn-ghost btn-compact"
+                          className="journal-action-link"
                           onClick={e => { e.stopPropagation(); onEdit(item) }}
                         >
+                          <Pencil size={12} strokeWidth={2} aria-hidden />
                           编辑
                         </button>
+                        <span className="journal-action-sep" aria-hidden>·</span>
                         <button
                           type="button"
-                          className="btn-ghost btn-compact btn-danger-ghost"
+                          className="journal-action-link journal-action-link--danger"
                           onClick={e => { e.stopPropagation(); onDelete(item.id) }}
                         >
+                          <Trash2 size={12} strokeWidth={2} aria-hidden />
                           删除
                         </button>
                       </div>
-                      <div className="journal-collapse-hint">点击收起 ▲</div>
                     </div>
                   )}
                 </div>

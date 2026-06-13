@@ -89,7 +89,7 @@ export function RecordModal({
             </div>
             <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
               <div style={{ position: 'relative', flexShrink: 0 }}>
-                <img decoding="async" src={card.cardImg} alt={card.word} style={{ width: 70, height: 94, objectFit: 'cover', borderRadius: 14 }} loading="lazy" />
+                <img decoding="async" src={card.cardImg} alt={card.word} className="card-thumb card-thumb--md" loading="lazy" />
                 <div style={{
                   position: 'absolute', bottom: -6, right: -6, width: 22, height: 22, borderRadius: '50%',
                   background: CARD_COLORS[card.word], display: 'flex', alignItems: 'center', justifyContent: 'center',

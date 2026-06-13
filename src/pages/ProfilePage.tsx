@@ -1,4 +1,4 @@
-import { Bell, Shield, Phone, Moon, Sun, Info, Clock, Flame } from 'lucide-react'
+import { Bell, Shield, Phone, Moon, Sun, Info, Flame } from 'lucide-react'
 import { streakLabel } from '../utils/streak'
 
 type ProfilePageProps = {
@@ -9,8 +9,7 @@ type ProfilePageProps = {
   reminderHour: number
   reminderMinute: number
   onToggleDark: () => void
-  onToggleReminder: () => void
-  onOpenReminderTime: () => void
+  onOpenReminderSettings: () => void
   onEditName: () => void
   onPrivacy: () => void
   onCrisis: () => void
@@ -25,8 +24,7 @@ export function ProfilePage({
   reminderHour,
   reminderMinute,
   onToggleDark,
-  onToggleReminder,
-  onOpenReminderTime,
+  onOpenReminderSettings,
   onEditName,
   onPrivacy,
   onCrisis,
@@ -34,6 +32,7 @@ export function ProfilePage({
 }: ProfilePageProps) {
   const timeLabel = `${String(reminderHour).padStart(2, '0')}:${String(reminderMinute).padStart(2, '0')}`
   const streakText = streakLabel(streak)
+  const reminderStatus = reminderEnabled ? `每天 ${timeLabel}` : '未开启'
 
   return (
     <div className="profile-page page-enter">
@@ -62,26 +61,12 @@ export function ProfilePage({
         <section className="profile-section">
           <h2 className="profile-section-title">觉察习惯</h2>
           <div className="profile-list">
-            <div className="profile-list-item" onClick={onToggleReminder}>
+            <button type="button" className="profile-list-item" onClick={onOpenReminderSettings}>
               <div className="list-icon list-icon--warm"><Bell size={18} strokeWidth={2} /></div>
               <div className="list-label">每日觉察提醒</div>
-              <div
-                className={`toggle-switch ${reminderEnabled ? 'toggle-switch--on' : ''}`}
-                role="switch"
-                aria-checked={reminderEnabled}
-                aria-label="每日觉察提醒"
-              >
-                <div className="toggle-switch-knob" />
-              </div>
-            </div>
-            {reminderEnabled && (
-              <div className="profile-list-item profile-list-item--sub" onClick={onOpenReminderTime}>
-                <div className="list-icon list-icon--muted"><Clock size={18} strokeWidth={2} /></div>
-                <div className="list-label">提醒时间</div>
-                <div className="list-time">{timeLabel}</div>
-                <div className="list-arrow">›</div>
-              </div>
-            )}
+              <div className={`list-status${reminderEnabled ? ' list-status--on' : ''}`}>{reminderStatus}</div>
+              <div className="list-arrow">›</div>
+            </button>
           </div>
         </section>
 

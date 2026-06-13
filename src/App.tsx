@@ -6,11 +6,11 @@ import { preloadImage, preloadImages, preloadImagesIdle } from './preload'
 import { findTodayEntry, resolveTodayCardIdx, saveTodayCardIdx } from './homeUtils'
 import { computeStreak } from './utils/streak'
 import { NIANGQIAN_GUIDANCE } from './fallback'
-import { requestNotificationPermission } from './notifications'
+import { reminderFailureMessage, reminderWarningMessage } from './notifications'
 import { useAppStorage } from './hooks/useAppStorage'
 import { useChat } from './hooks/useChat'
 import { useHug } from './hooks/useHug'
-import type { Page, JournalItem } from './types'
+import type { Page, JournalItem, ReminderSettings } from './types'
 import { BottomNav } from './components/BottomNav'
 import { RecordModal } from './components/RecordModal'
 import { ShareCardModal } from './components/ShareCardModal'
@@ -22,7 +22,7 @@ import { HugModal } from './components/modals/HugModal'
 import { EditNameModal } from './components/modals/EditNameModal'
 import { JournalEditModal } from './components/modals/JournalEditModal'
 import { QuickCheckInModal } from './components/modals/QuickCheckInModal'
-import { ReminderTimeModal } from './components/modals/ReminderTimeModal'
+import { ReminderSettingsModal } from './components/modals/ReminderSettingsModal'
 import { SplashPage } from './pages/SplashPage'
 import { OnboardPage } from './pages/OnboardPage'
 import { HomePage } from './pages/HomePage'
@@ -48,7 +48,7 @@ export default function App() {
   const [showHug, setShowHug] = useState(false)
   const [showEditName, setShowEditName] = useState(false)
   const [showQuickCheckIn, setShowQuickCheckIn] = useState(false)
-  const [showReminderTime, setShowReminderTime] = useState(false)
+  const [showReminderSettings, setShowReminderSettings] = useState(false)
 
   const chat = useChat(
     cardIdx,
@@ -124,29 +124,23 @@ export default function App() {
     if (chat.handleFinishChat()) setShowRecord(true)
   }
 
-  const handleToggleReminder = async () => {
-    const next = { ...storage.reminder, enabled: !storage.reminder.enabled }
-    if (next.enabled) {
-      const granted = await requestNotificationPermission()
-      if (!granted) {
-        window.alert('请在系统设置中允许通知，才能收到每日觉察提醒。')
-        return
-      }
+  const handleSaveReminderSettings = async (settings: ReminderSettings) => {
+    const result = await storage.updateReminder(settings)
+    if (result.ok === false) {
+      window.alert(reminderFailureMessage(result.reason))
+      return
     }
-    await storage.updateReminder(next)
-  }
 
-  const handleSaveReminderTime = async (hour: number, minute: number) => {
-    const next = { ...storage.reminder, hour, minute }
-    if (next.enabled) {
-      const granted = await requestNotificationPermission()
-      if (!granted) {
-        window.alert('请在系统设置中允许通知，才能收到每日觉察提醒。')
-        return
+    // 先关弹窗，原生取消/注册放后台（iOS cancel 可能卡住 bridge）
+    setShowReminderSettings(false)
+
+    void storage.syncReminderNative(settings).then(native => {
+      if (native.ok === false) {
+        window.alert(reminderFailureMessage(native.reason))
+      } else if (native.warning) {
+        window.alert(reminderWarningMessage(native.warning))
       }
-    }
-    await storage.updateReminder(next)
-    setShowReminderTime(false)
+    })
   }
 
   const handleQuickCheckInSaved = (item: JournalItem) => {
@@ -257,8 +251,7 @@ export default function App() {
           reminderHour={storage.reminder.hour}
           reminderMinute={storage.reminder.minute}
           onToggleDark={() => storage.setDarkMode(d => !d)}
-          onToggleReminder={handleToggleReminder}
-          onOpenReminderTime={() => setShowReminderTime(true)}
+          onOpenReminderSettings={() => setShowReminderSettings(true)}
           onEditName={() => setShowEditName(true)}
           onPrivacy={() => setShowPrivacy(true)}
           onCrisis={() => setShowCrisis(true)}
@@ -322,12 +315,11 @@ export default function App() {
           onSaved={handleQuickCheckInSaved}
         />
       )}
-      {showReminderTime && (
-        <ReminderTimeModal
-          hour={storage.reminder.hour}
-          minute={storage.reminder.minute}
-          onClose={() => setShowReminderTime(false)}
-          onSave={handleSaveReminderTime}
+      {showReminderSettings && (
+        <ReminderSettingsModal
+          settings={storage.reminder}
+          onClose={() => setShowReminderSettings(false)}
+          onSave={handleSaveReminderSettings}
         />
       )}
     </div>
