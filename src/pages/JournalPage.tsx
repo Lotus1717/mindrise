@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Share2, Trash2 } from 'lucide-react'
 import { CARD_COLORS, MOOD_EMOJI, MOOD_LABELS } from '../constants/emotions'
 import { buildWeekChartData, normalizeCardImg, WEEK_CHART_MAX } from '../utils/journal'
 import type { JournalItem } from '../types'
@@ -10,6 +10,7 @@ type JournalPageProps = {
   onToggleExpand: (id: string | null) => void
   onEdit: (item: JournalItem) => void
   onDelete: (id: string) => void
+  onShare: (item: JournalItem) => void
 }
 
 export function JournalPage({
@@ -18,6 +19,7 @@ export function JournalPage({
   onToggleExpand,
   onEdit,
   onDelete,
+  onShare,
 }: JournalPageProps) {
   const weekData = useMemo(() => buildWeekChartData(journal), [journal])
 
@@ -104,6 +106,15 @@ export function JournalPage({
                         </div>
                       )}
                       <div className="journal-item-actions">
+                        <button
+                          type="button"
+                          className="journal-action-link"
+                          onClick={e => { e.stopPropagation(); onShare(item) }}
+                        >
+                          <Share2 size={12} strokeWidth={2} aria-hidden />
+                          分享
+                        </button>
+                        <span className="journal-action-sep" aria-hidden>·</span>
                         <button
                           type="button"
                           className="journal-action-link"

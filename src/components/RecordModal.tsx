@@ -5,7 +5,7 @@ import { generateAwarenessSummary, type ChatMessage } from '../ai'
 import { OTTER_GLOW } from '../assets'
 import { CARD_COLORS, EMOTION_LETTERS, MOOD_EMOJI, MOOD_LABELS } from '../constants/emotions'
 import { createJournalItem } from '../utils/journal'
-import type { CardData, ChatMsg, JournalItem } from '../types'
+import type { CardData, ChatMsg, JournalItem, ShareCardPayload } from '../types'
 
 type RecordModalProps = {
   card: CardData
@@ -14,8 +14,8 @@ type RecordModalProps = {
   onCancel: () => void
   onSaved: (item: JournalItem) => void
   onFinish: () => void
-  onShare: () => void
-  onShareAfterSave?: () => void
+  onShare: (payload: ShareCardPayload) => void
+  onShareAfterSave?: (payload: ShareCardPayload) => void
 }
 
 export function RecordModal({
@@ -76,6 +76,14 @@ export function RecordModal({
     onSaved(item)
     setSaved(true)
   }, [rating, selTags, summary, defaultSummary, card, onSaved])
+
+  const sharePayload = useCallback((): ShareCardPayload => ({
+    card,
+    summary: summary || defaultSummary,
+    rating,
+    tags: selTags,
+    userName,
+  }), [card, summary, defaultSummary, rating, selTags, userName])
 
   return (
     <div className="modal-overlay" onClick={onCancel}>
@@ -149,7 +157,7 @@ export function RecordModal({
               ))}
             </div>
             <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-              <button className="btn-share" style={{ flex: 1, marginBottom: 0 }} onClick={onShare}>分享卡片</button>
+              <button className="btn-share" style={{ flex: 1, marginBottom: 0 }} onClick={() => onShare(sharePayload())}>分享卡片</button>
               <button className="btn-save" style={{ flex: 2, marginBottom: 0 }} onClick={handleSave}>保存到日记</button>
             </div>
             <button className="btn-ghost" style={{ width: '100%' }} onClick={onCancel}>取消</button>
@@ -177,7 +185,7 @@ export function RecordModal({
               每一次觉察，都是一次成长。
             </div>
             {onShareAfterSave && (
-              <button className="btn-share" style={{ marginTop: 20 }} onClick={onShareAfterSave}>分享卡片</button>
+              <button className="btn-share" style={{ marginTop: 20 }} onClick={() => onShareAfterSave?.(sharePayload())}>分享卡片</button>
             )}
           </div>
         )}

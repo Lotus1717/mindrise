@@ -29,3 +29,14 @@ export type CardData = {
   guide: string
   cardImg: string
 }
+
+/** 分享卡片所需数据（觉察小结 + 情绪卡） */
+export type ShareCardPayload = {
+  card: CardData
+  summary: string
+  rating: number
+  tags: string[]
+  userName: string
+  /** 展示日期，默认当天 */
+  dateLabel?: string
+}

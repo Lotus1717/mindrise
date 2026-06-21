@@ -4,6 +4,7 @@ import { CARDS } from './data'
 import { OTTER_DEFAULT, SPLASH_FRAMES } from './assets'
 import { preloadImage, preloadImages, preloadImagesIdle } from './preload'
 import { findTodayEntry, resolveTodayCardIdx, saveTodayCardIdx } from './homeUtils'
+import { journalToSharePayload } from './utils/journal'
 import { computeStreak } from './utils/streak'
 import { NIANGQIAN_GUIDANCE } from './fallback'
 import {
@@ -16,7 +17,7 @@ import { Capacitor } from '@capacitor/core'
 import { useAppStorage } from './hooks/useAppStorage'
 import { useChat } from './hooks/useChat'
 import { useHug } from './hooks/useHug'
-import type { Page, JournalItem, ReminderSettings } from './types'
+import type { Page, JournalItem, ReminderSettings, ShareCardPayload } from './types'
 import { BottomNav } from './components/BottomNav'
 import { RecordModal } from './components/RecordModal'
 import { ShareCardModal } from './components/ShareCardModal'
@@ -47,6 +48,7 @@ export default function App() {
 
   const [showRecord, setShowRecord] = useState(false)
   const [showShareCard, setShowShareCard] = useState(false)
+  const [sharePayload, setSharePayload] = useState<ShareCardPayload | null>(null)
   const [showBreathing, setShowBreathing] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showCrisis, setShowCrisis] = useState(false)
@@ -253,6 +255,10 @@ export default function App() {
           onDelete={id => {
             if (window.confirm('确定删除这条觉察吗？')) storage.deleteJournalItem(id)
           }}
+          onShare={item => {
+            setSharePayload(journalToSharePayload(item, storage.userName))
+            setShowShareCard(true)
+          }}
         />
       )}
 
@@ -287,12 +293,17 @@ export default function App() {
             setPage('home')
             chat.clearChat()
           }}
-          onShare={() => setShowShareCard(true)}
-          onShareAfterSave={() => setShowShareCard(true)}
+          onShare={payload => { setSharePayload(payload); setShowShareCard(true) }}
+          onShareAfterSave={payload => { setSharePayload(payload); setShowShareCard(true) }}
         />
       )}
 
-      {showShareCard && <ShareCardModal card={card} onClose={() => setShowShareCard(false)} />}
+      {showShareCard && sharePayload && (
+        <ShareCardModal
+          payload={sharePayload}
+          onClose={() => { setShowShareCard(false); setSharePayload(null) }}
+        />
+      )}
       {showBreathing && <BreathingModal onClose={() => setShowBreathing(false)} />}
       {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
       {showCrisis && <CrisisModal onClose={() => setShowCrisis(false)} />}

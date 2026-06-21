@@ -1,5 +1,6 @@
+import { CARDS } from '../data'
 import { CARD_COLORS } from '../constants/emotions'
-import type { JournalItem } from '../types'
+import type { CardData, JournalItem, ShareCardPayload } from '../types'
 
 export function normalizeCardImg(img: string): string {
   return img.replace(/\.png(\?.*)?$/i, '.webp')
@@ -50,6 +51,23 @@ export function buildWeekChartData(journal: JournalItem[]): WeekChartDay[] {
 export const WEEK_CHART_MAX = 5
 
 const WEEKDAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'] as const
+
+/** 日记条目 → 分享卡片数据 */
+export function journalToSharePayload(item: JournalItem, userName: string): ShareCardPayload {
+  const cardImg = normalizeCardImg(item.cardImg)
+  const found = CARDS.find(c => c.word === item.emotion)
+  const card: CardData = found
+    ? { ...found, cardImg }
+    : { id: 0, word: item.emotion, pinyin: '', guide: '', cardImg }
+  return {
+    card,
+    summary: item.summary,
+    rating: item.rating,
+    tags: item.tags,
+    userName,
+    dateLabel: `${item.date} ${item.day}`,
+  }
+}
 
 export function createJournalItem(
   params: Pick<JournalItem, 'emotion' | 'summary' | 'cardImg' | 'rating' | 'tags' | 'kind'>,
