@@ -1,0 +1,104 @@
+name: Android Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_aab:
+        description: 同时构建 AAB（上架 Google Play）
+        type: boolean
+        default: true
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'android/**'
+      - 'capacitor.config.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/android-build.yml'
+
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create .env for Vite build
+        run: |
+          if [ -z "${{ secrets.VITE_CLOUDBASE_ENV_ID }}" ]; then
+            echo "::warning::未配置 VITE_CLOUDBASE_ENV_ID，构建可完成但 AI 对话不可用"
+            cp .env.example .env
+          else
+            printf 'VITE_CLOUDBASE_ENV_ID=%s\n' "${{ secrets.VITE_CLOUDBASE_ENV_ID }}" > .env
+          fi
+
+      - name: Build web and sync Capacitor
+        run: npm run cap:sync
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Configure release signing
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        working-directory: android
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore
+          cat > keystore.properties <<EOF
+          storeFile=release.keystore
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Build release AAB
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.build_aab)
+        working-directory: android
+        run: ./gradlew bundleRelease --no-daemon
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p dist/android
+          shopt -s nullglob
+          for f in android/app/build/outputs/apk/release/*.apk; do
+            cp "$f" dist/android/
+          done
+          for f in android/app/build/outputs/bundle/release/*.aab; do
+            cp "$f" dist/android/
+          done
+          ls -lh dist/android/
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ github.sha }}
+          path: dist/android/*
+          if-no-files-found: error
+          retention-days: 30
