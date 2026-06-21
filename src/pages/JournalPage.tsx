@@ -126,7 +126,7 @@ export function JournalPage({
                         <span className="journal-action-sep" aria-hidden>·</span>
                         <button
                           type="button"
-                          className="journal-action-link journal-action-link--danger"
+                          className="journal-action-link"
                           onClick={e => { e.stopPropagation(); onDelete(item.id) }}
                         >
                           <Trash2 size={12} strokeWidth={2} aria-hidden />

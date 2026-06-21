@@ -593,7 +593,6 @@ body {
   transition: opacity 0.15s;
 }
 .journal-action-link:active { opacity: 0.55; }
-.journal-action-link--danger { color: #C97A6A; }
 .journal-action-sep { color: var(--text-muted); opacity: 0.35; font-size: 12px; user-select: none; }
 
 /* ─── 个人页 ─── */

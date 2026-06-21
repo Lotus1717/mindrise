@@ -1,5 +1,5 @@
 import { LOGO_48 } from '../assets'
-import { CARD_COLORS, EMOTION_LETTERS, MOOD_EMOJI, MOOD_LABELS } from '../constants/emotions'
+import { CARD_COLORS, MOOD_EMOJI, MOOD_LABELS } from '../constants/emotions'
 import { formatStatusDate } from '../homeUtils'
 import type { ShareCardPayload } from '../types'
 
@@ -16,7 +16,6 @@ const CARD_RADIUS = 14
 
 const SUMMARY_FONT = 30
 const SUMMARY_LINE_H = 48
-const SUMMARY_LABEL_GAP = 32
 const SUMMARY_BLOCK_PAD_X = 36
 const SUMMARY_BLOCK_PAD_Y = 28
 
@@ -120,6 +119,8 @@ function fillTextSpaced(
   cx: number, y: number,
   spacing: number,
 ) {
+  const prevAlign = ctx.textAlign
+  ctx.textAlign = 'left'
   const chars = [...text]
   let totalW = 0
   for (const ch of chars) totalW += ctx.measureText(ch).width
@@ -129,6 +130,7 @@ function fillTextSpaced(
     ctx.fillText(ch, x, y)
     x += ctx.measureText(ch).width + spacing
   }
+  ctx.textAlign = prevAlign
 }
 
 function measureLayout(
@@ -139,7 +141,7 @@ function measureLayout(
 ) {
   ctx.font = `${SUMMARY_FONT}px ${FONT}`
   const lines = wrapLines(ctx, summary, innerTextW, 5)
-  const blockH = SUMMARY_BLOCK_PAD_Y + 18 + SUMMARY_LABEL_GAP + lines.length * SUMMARY_LINE_H + SUMMARY_BLOCK_PAD_Y
+  const blockH = SUMMARY_BLOCK_PAD_Y + lines.length * SUMMARY_LINE_H + SUMMARY_BLOCK_PAD_Y
 
   let y = PAD + 56
   y += CARD_VISUAL_H + 32
@@ -213,43 +215,7 @@ function drawHero(
   ctx.textBaseline = 'alphabetic'
   ctx.restore()
 
-  const letter = EMOTION_LETTERS[word] || word[0]
-  const badgeR = 16
-  const bx = imgX + imgW - badgeR - 10
-  const by = y + 10 + badgeR
-  ctx.beginPath()
-  ctx.arc(bx, by, badgeR, 0, Math.PI * 2)
-  ctx.fillStyle = color
-  ctx.fill()
-  ctx.fillStyle = '#FFF'
-  ctx.font = `bold 15px ${FONT}`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText(letter, bx, by + 1)
-  ctx.textBaseline = 'alphabetic'
-
   return y + imgH + 32
-}
-
-function drawSummaryLabel(ctx: CanvasRenderingContext2D, cx: number, y: number) {
-  const label = '这段觉察'
-  ctx.font = `15px ${FONT}`
-  const lw = ctx.measureText(label).width
-  const lineLen = 24
-  const gap = 10
-
-  ctx.strokeStyle = C.blockBorder
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.moveTo(cx - lw / 2 - gap - lineLen, y - 4)
-  ctx.lineTo(cx - lw / 2 - gap, y - 4)
-  ctx.moveTo(cx + lw / 2 + gap, y - 4)
-  ctx.lineTo(cx + lw / 2 + gap + lineLen, y - 4)
-  ctx.stroke()
-
-  ctx.fillStyle = C.muted
-  ctx.textAlign = 'center'
-  ctx.fillText(label, cx, y)
 }
 
 function drawSummary(
@@ -268,13 +234,10 @@ function drawSummary(
   ctx.lineWidth = 1
   ctx.stroke()
 
-  const labelY = y + SUMMARY_BLOCK_PAD_Y + 14
-  drawSummaryLabel(ctx, cx, labelY)
-
   ctx.fillStyle = C.text
   ctx.font = `${SUMMARY_FONT}px ${FONT}`
   ctx.textAlign = 'center'
-  const bodyY = labelY + SUMMARY_LABEL_GAP
+  const bodyY = y + SUMMARY_BLOCK_PAD_Y + 36
   lines.forEach((line, i) => {
     ctx.fillText(line, cx, bodyY + i * SUMMARY_LINE_H)
   })
