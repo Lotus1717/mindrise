@@ -41,6 +41,17 @@ export function useAppStorage() {
     })()
   }, [])
 
+  // 从后台回到前台时补注册（系统升级/重启后可能丢失调度）
+  useEffect(() => {
+    if (!loaded) return
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      void syncReminderIfNeeded(reminder)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [loaded, reminder.enabled, reminder.hour, reminder.minute])
+
   useEffect(() => { if (loaded) storageSet('mindrise-dark', darkMode ? '1' : '0') }, [darkMode, loaded])
   useEffect(() => { if (loaded) storageSet('mindrise-name', userName) }, [userName, loaded])
   useEffect(() => { if (loaded) storageSet('mindrise-journal', journal) }, [journal, loaded])
@@ -71,8 +82,10 @@ export function useAppStorage() {
     }
   }
 
-  /** 弹窗关闭后再调：请求权限 + 注册通知 */
-  const syncReminderNative = (settings: ReminderSettings) => syncReminderToNative(settings)
+  const syncReminderNative = (
+    settings: ReminderSettings,
+    opts?: { skipPermission?: boolean },
+  ) => syncReminderToNative(settings, opts)
 
   const updateJournalItem = (id: string, patch: Partial<JournalItem>) => {
     setJournal(j => j.map(item => item.id === id ? { ...item, ...patch } : item))

@@ -295,6 +295,23 @@ body {
 .dark-mode .reminder-status-pill { background: rgba(255,255,255,0.06); }
 .reminder-status-pill--on { color: var(--accent-warm); background: rgba(232,180,162,0.12); font-weight: 600; }
 .reminder-disable-btn { color: var(--text-muted) !important; margin-top: 0 !important; }
+.reminder-feedback {
+  margin: 12px 0 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+}
+.reminder-feedback--warn {
+  background: rgba(232, 180, 162, 0.14);
+  color: var(--accent-warm);
+}
+.reminder-feedback--error {
+  background: rgba(220, 80, 80, 0.12);
+  color: #c44;
+}
+.dark-mode .reminder-feedback--error { color: #f88; }
 .dark-mode .app-input, .dark-mode .app-textarea { background: #252535; border-color: rgba(255,255,255,0.12); }
 .app-input:focus, .app-textarea:focus {
   outline: none; border-color: var(--accent-warm);

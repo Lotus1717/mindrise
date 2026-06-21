@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Bell } from 'lucide-react'
 import { ModalChrome } from './ModalChrome'
+import { reminderFailureMessage, reminderWarningMessage } from '../../notifications'
+import type { ReminderSaveResult } from '../../notifications'
 import type { ReminderSettings } from '../../types'
 
 type ReminderSettingsModalProps = {
   settings: ReminderSettings
   onClose: () => void
-  onSave: (settings: ReminderSettings) => Promise<void>
+  onSave: (settings: ReminderSettings) => Promise<ReminderSaveResult>
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
@@ -16,20 +18,41 @@ function pad(n: number) {
   return String(n).padStart(2, '0')
 }
 
+function saveFeedback(result: ReminderSaveResult): { kind: 'error' | 'warn' | 'ok'; text: string } | null {
+  if (result.ok === false) {
+    return { kind: 'error', text: reminderFailureMessage(result.reason) }
+  }
+  if (result.warning) {
+    return { kind: 'warn', text: reminderWarningMessage(result.warning) }
+  }
+  return null
+}
+
 export function ReminderSettingsModal({ settings, onClose, onSave }: ReminderSettingsModalProps) {
   const [enabled, setEnabled] = useState(settings.enabled)
   const [hour, setHour] = useState(settings.hour)
   const [minute, setMinute] = useState(settings.minute)
   const [saving, setSaving] = useState(false)
+  const [feedback, setFeedback] = useState<{ kind: 'error' | 'warn' | 'ok'; text: string } | null>(null)
 
   const timeLabel = `${pad(hour)}:${pad(minute)}`
 
   const runSave = async (next: ReminderSettings) => {
     if (saving) return
     setSaving(true)
+    setFeedback(null)
     try {
-      await onSave(next)
+      const result = await onSave(next)
+      const hint = saveFeedback(result)
+      if (hint) {
+        setFeedback(hint)
+        if (hint.kind === 'warn' && next.enabled && result.ok) {
+          setEnabled(true)
+        }
+        return
+      }
       setEnabled(next.enabled)
+      onClose()
     } finally {
       setSaving(false)
     }
@@ -44,6 +67,12 @@ export function ReminderSettingsModal({ settings, onClose, onSave }: ReminderSet
       <div className={`reminder-status-pill${enabled ? ' reminder-status-pill--on' : ''}`}>
         {enabled ? `已开启 · 每天 ${timeLabel}` : '当前未开启'}
       </div>
+
+      {feedback && (
+        <div className={`reminder-feedback reminder-feedback--${feedback.kind}`} role="alert">
+          {feedback.text}
+        </div>
+      )}
 
       <div className="field-label field-label--center">提醒时刻</div>
       <div className="time-picker-row">
@@ -79,7 +108,7 @@ export function ReminderSettingsModal({ settings, onClose, onSave }: ReminderSet
           disabled={saving}
           onClick={() => runSave({ enabled: true, hour, minute })}
         >
-          {saving ? '正在保存…' : '开启每日提醒'}
+          {saving ? '正在请求权限…' : '开启每日提醒'}
         </button>
       ) : (
         <>

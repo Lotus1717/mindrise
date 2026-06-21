@@ -6,7 +6,13 @@ import { preloadImage, preloadImages, preloadImagesIdle } from './preload'
 import { findTodayEntry, resolveTodayCardIdx, saveTodayCardIdx } from './homeUtils'
 import { computeStreak } from './utils/streak'
 import { NIANGQIAN_GUIDANCE } from './fallback'
-import { reminderFailureMessage, reminderWarningMessage } from './notifications'
+import {
+  checkNotificationPermission,
+  ensureNotificationPermission,
+  preloadNotificationModule,
+  type ReminderSaveResult,
+} from './notifications'
+import { Capacitor } from '@capacitor/core'
 import { useAppStorage } from './hooks/useAppStorage'
 import { useChat } from './hooks/useChat'
 import { useHug } from './hooks/useHug'
@@ -75,6 +81,7 @@ export default function App() {
     preloadImages([OTTER_DEFAULT, CARDS[0].cardImg])
     preloadImagesIdle(CARDS.map(c => c.cardImg))
     preloadImagesIdle(SPLASH_FRAMES)
+    preloadNotificationModule()
   }, [])
 
   useEffect(() => {
@@ -124,23 +131,30 @@ export default function App() {
     if (chat.handleFinishChat()) setShowRecord(true)
   }
 
-  const handleSaveReminderSettings = async (settings: ReminderSettings) => {
-    const result = await storage.updateReminder(settings)
-    if (result.ok === false) {
-      window.alert(reminderFailureMessage(result.reason))
-      return
+  const handleSaveReminderSettings = async (settings: ReminderSettings): Promise<ReminderSaveResult> => {
+    if (settings.enabled && Capacitor.isNativePlatform()) {
+      // 已授权则跳过 request，避免多余原生调用
+      const current = await checkNotificationPermission()
+      if (current !== 'granted') {
+        const permission = await ensureNotificationPermission()
+        if (permission !== 'granted') {
+          return {
+            ok: true,
+            warning: permission === 'unsupported' ? 'unsupported' : 'permission_denied',
+          }
+        }
+      }
     }
 
-    // 先关弹窗，原生取消/注册放后台（iOS cancel 可能卡住 bridge）
-    setShowReminderSettings(false)
+    const result = await storage.updateReminder(settings)
+    if (result.ok === false) return result
 
-    void storage.syncReminderNative(settings).then(native => {
-      if (native.ok === false) {
-        window.alert(reminderFailureMessage(native.reason))
-      } else if (native.warning) {
-        window.alert(reminderWarningMessage(native.warning))
-      }
-    })
+    try {
+      return await storage.syncReminderNative(settings, { skipPermission: true })
+    } catch (err) {
+      console.warn('[reminder] native sync failed', err)
+      return { ok: false, reason: 'schedule_failed' }
+    }
   }
 
   const handleQuickCheckInSaved = (item: JournalItem) => {
