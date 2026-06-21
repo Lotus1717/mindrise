@@ -36,21 +36,23 @@ export function SplashPage({ onboarded, onEnter }: SplashPageProps) {
     <div className="splash">
       <div className="splash-moon" />
       <div className="splash-water" />
-      <div className="splash-otter-wrap">
-        {splashSrcs.map((src, i) => (
-          <img
-            key={i}
-            className={`splash-otter ${i === activeSplashLayer ? 'splash-otter-active' : 'splash-otter-inactive'}`}
-            src={src}
-            alt="念念"
-            decoding="async"
-          />
-        ))}
+      <div className="splash-main">
+        <div className="splash-otter-wrap">
+          {splashSrcs.map((src, i) => (
+            <img
+              key={i}
+              className={`splash-otter ${i === activeSplashLayer ? 'splash-otter-active' : 'splash-otter-inactive'}`}
+              src={src}
+              alt="念念"
+              decoding="async"
+            />
+          ))}
+        </div>
+        <div className="splash-brand"><h1>念起</h1><p>觉察即自由</p></div>
+        <button className="splash-enter" onClick={() => onEnter(onboarded ? 'home' : 'onboard')}>
+          开启觉察之旅
+        </button>
       </div>
-      <div className="splash-brand"><h1>念起</h1><p>觉察即自由</p></div>
-      <button className="splash-enter" onClick={() => onEnter(onboarded ? 'home' : 'onboard')}>
-        开启觉察之旅
-      </button>
       <div className="splash-disclaimer">
         <p>{SPLASH_FOOTER_NOTE}</p>
       </div>

@@ -15,10 +15,16 @@ body {
 
 /* ─── 启动页 ─── */
 .splash {
-  min-height: 100vh; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
+  min-height: 100vh; min-height: 100dvh;
+  display: flex; flex-direction: column;
+  align-items: stretch;
   background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 55%, var(--card-bg) 100%);
   position: relative; overflow: hidden;
+}
+.splash-main {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 2; padding: 24px 24px 56px;
 }
 .splash-moon {
   position: absolute; top: 6%; right: 12%;
@@ -68,11 +74,14 @@ body {
 .splash-enter:hover { transform: scale(1.04); box-shadow: 0 6px 20px rgba(201,168,130,0.35); }
 .splash-enter:active { transform: scale(0.97); }
 .splash-disclaimer {
-  position: relative; z-index: 2; margin-top: 24px; padding: 12px 20px;
-  background: var(--card-bg); border-radius: 16px; border: 1px solid var(--card-border);
-  box-shadow: 0 2px 12px rgba(60,46,43,0.06); max-width: 320px; text-align: center;
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
+  padding: 10px 28px max(16px, env(safe-area-inset-bottom));
+  text-align: center; pointer-events: none;
 }
-.splash-disclaimer p { color: var(--text-muted); font-size: 11px; line-height: 1.5; letter-spacing: 0.3px; }
+.splash-disclaimer p {
+  color: var(--text-muted); font-size: 10px; line-height: 1.55;
+  letter-spacing: 0.2px; opacity: 0.62;
+}
 
 /* ─── 主容器 + 深色模式（纯CSS变量，无filter） ─── */
 .app-container {
@@ -717,6 +726,65 @@ body {
 .hug-message--loading { min-height: 72px; display: flex; align-items: center; justify-content: center; }
 .hug-typing { border: none !important; background: transparent !important; padding: 0 !important; box-shadow: none !important; }
 .modal-close { width: 100%; padding: 14px; background: var(--accent-warm); color: #FFF; border: none; border-radius: 24px; font-size: 15px; font-weight: 600; cursor: pointer; }
+
+/* ─── 呼吸练习 ─── */
+.breathing-overlay { background: rgba(40, 50, 60, 0.45); }
+.breathing-sheet {
+  position: relative; border-radius: 28px; max-width: 360px; margin: 0 auto;
+  text-align: center; transform: translateY(0); padding: 12px 24px 32px;
+  animation: none;
+  background: linear-gradient(180deg, var(--card-bg) 0%, rgba(200,223,240,0.22) 100%);
+}
+.dark-mode .breathing-sheet {
+  background: linear-gradient(180deg, #1E1E2E 0%, rgba(30,40,55,0.95) 100%);
+}
+.breathing-icon-btn {
+  position: absolute; top: 16px; right: 16px;
+  background: rgba(0,0,0,0.06); border: none; border-radius: 50%;
+  width: 36px; height: 36px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; color: var(--text-muted);
+}
+.breathing-icon-btn--left { right: auto; left: 16px; }
+.breathing-icon-btn:active { opacity: 0.65; }
+.breathing-title { margin-top: 8px; }
+.breathing-sub {
+  font-size: 13px; color: var(--text-muted); margin: 6px 0 20px; line-height: 1.5;
+}
+.breathing-sub-note { color: var(--accent-green); opacity: 0.85; }
+.breathing-visual {
+  position: relative; width: 180px; height: 180px; margin: 0 auto 20px;
+}
+.breathing-ring {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  transform: rotate(-90deg);
+}
+.breathing-ring-track {
+  fill: none; stroke: rgba(167,197,189,0.22); stroke-width: 5;
+}
+.breathing-ring-progress {
+  fill: none; stroke: var(--accent-green); stroke-width: 5; stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+.breathing-glow {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle, rgba(167,197,189,0.38), transparent 68%);
+  transition: transform 4s ease-in-out;
+}
+.breathing-otter {
+  width: 128px; height: 128px; border-radius: 50%;
+  position: absolute; top: 50%; left: 50%;
+  transition: transform 4s ease-in-out;
+  box-shadow: 0 0 36px rgba(255,229,180,0.55);
+}
+.breathing-phase {
+  font-size: 26px; font-weight: 700; color: var(--text-dark); margin-bottom: 6px;
+}
+.breathing-count {
+  font-size: 44px; font-weight: 700; color: var(--accent-warm);
+  margin-bottom: 8px; font-variant-numeric: tabular-nums; line-height: 1;
+}
+.breathing-hint { font-size: 14px; color: var(--text-muted); line-height: 1.6; min-height: 22px; }
+.breathing-remaining { font-size: 12px; color: var(--text-muted); opacity: 0.7; margin-top: 10px; }
 
 /* ─── 情绪记录弹窗 ─── */
 .record-summary {

@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
-import { X } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { X, Volume2, VolumeX } from 'lucide-react'
 import { OTTER_GLOW } from '../assets'
+import { BreathingAudio } from '../utils/breathingAudio'
 
 type Phase = 'inhale' | 'hold' | 'exhale'
 
@@ -12,6 +13,14 @@ const PHASE_LABELS: Record<Phase, string> = {
   hold: '屏息',
   exhale: '呼气',
 }
+const PHASE_HINTS: Record<Phase, string> = {
+  inhale: '慢慢填满胸腔',
+  hold: '轻轻停在这里',
+  exhale: '让肩膀松下来',
+}
+
+const RING_R = 86
+const RING_C = 2 * Math.PI * RING_R
 
 type BreathingModalProps = {
   onClose: () => void
@@ -21,15 +30,39 @@ export function BreathingModal({ onClose }: BreathingModalProps) {
   const [remaining, setRemaining] = useState(TOTAL_SECONDS)
   const [phaseIdx, setPhaseIdx] = useState(0)
   const [phaseCount, setPhaseCount] = useState(PHASE_DURATION)
+  const [soundOn, setSoundOn] = useState(true)
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const audioRef = useRef<BreathingAudio | null>(null)
 
   const phase = PHASES[phaseIdx % PHASES.length]
+  const done = remaining === 0
+
+  useEffect(() => {
+    const audio = new BreathingAudio()
+    audioRef.current = audio
+    audio.start().catch(() => {
+      setSoundOn(false)
+    })
+    return () => {
+      audio.stop()
+      audioRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    audioRef.current?.setMuted(!soundOn)
+  }, [soundOn])
+
+  useEffect(() => {
+    if (done) return
+    audioRef.current?.pulsePhase(phase)
+  }, [phaseIdx, done, phase])
 
   useEffect(() => {
     tickRef.current = setInterval(() => {
       setRemaining(r => {
         if (r <= 1) {
-          clearInterval(tickRef.current!)
+          if (tickRef.current) clearInterval(tickRef.current)
           return 0
         }
         return r - 1
@@ -48,73 +81,76 @@ export function BreathingModal({ onClose }: BreathingModalProps) {
   }, [])
 
   useEffect(() => {
-    if (remaining === 0) {
-      const id = setTimeout(onClose, 1200)
-      return () => clearTimeout(id)
-    }
-  }, [remaining, onClose])
+    if (!done) return
+    const id = setTimeout(onClose, 1600)
+    return () => clearTimeout(id)
+  }, [done, onClose])
+
+  const handleClose = useCallback(() => {
+    audioRef.current?.stop()
+    onClose()
+  }, [onClose])
 
   const otterScale = phase === 'inhale' ? 1.12 : phase === 'exhale' ? 0.92 : 1.0
-  const ringScale = phase === 'inhale' ? 1.25 : phase === 'exhale' ? 0.85 : 1.05
+  const ringScale = phase === 'inhale' ? 1.22 : phase === 'exhale' ? 0.88 : 1.04
+  const progress = remaining / TOTAL_SECONDS
 
   return (
-    <div className="modal-overlay" style={{ alignItems: 'center' }} onClick={onClose}>
+    <div className="modal-overlay breathing-overlay" style={{ alignItems: 'center' }} onClick={handleClose}>
       <div
-        className="modal-sheet"
+        className="modal-sheet breathing-sheet"
         onClick={e => e.stopPropagation()}
-        style={{
-          borderRadius: 28, maxWidth: 360, margin: '0 auto', textAlign: 'center',
-          transform: 'translateY(0)', paddingBottom: 32,
-        }}
       >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="关闭"
-          style={{
-            position: 'absolute', top: 16, right: 16, background: 'rgba(0,0,0,0.06)',
-            border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)',
-          }}
-        >
+        <button type="button" className="breathing-icon-btn breathing-icon-btn--left" onClick={() => setSoundOn(v => !v)} aria-label={soundOn ? '关闭背景音' : '开启背景音'}>
+          {soundOn ? <Volume2 size={18} strokeWidth={2} /> : <VolumeX size={18} strokeWidth={2} />}
+        </button>
+        <button type="button" className="breathing-icon-btn" onClick={handleClose} aria-label="关闭">
           <X size={18} strokeWidth={2} />
         </button>
 
-        <div className="modal-title" style={{ marginTop: 8 }}>跟着念念呼吸</div>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>4-4-4 节奏 · 共 30 秒</div>
+        <div className="modal-title breathing-title">跟着念念呼吸</div>
+        <div className="breathing-sub">
+          4 · 4 · 4 节奏 · 共 30 秒
+          {soundOn && <span className="breathing-sub-note"> · 背景音已开</span>}
+        </div>
 
-        <div style={{ position: 'relative', width: 180, height: 180, margin: '0 auto 24px' }}>
-          <div style={{
-            position: 'absolute', inset: 0, borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(167,197,189,0.35), transparent 70%)',
-            transform: `scale(${ringScale})`,
-            transition: 'transform 4s ease-in-out',
-          }}
+        <div className="breathing-visual">
+          <svg className="breathing-ring" viewBox="0 0 180 180" aria-hidden>
+            <circle cx="90" cy="90" r={RING_R} className="breathing-ring-track" />
+            <circle
+              cx="90"
+              cy="90"
+              r={RING_R}
+              className="breathing-ring-progress"
+              strokeDasharray={RING_C}
+              strokeDashoffset={RING_C * (1 - progress)}
+            />
+          </svg>
+          <div
+            className="breathing-glow"
+            style={{ transform: `scale(${ringScale})` }}
           />
           <img
             src={OTTER_GLOW}
             alt="念念"
-            className="otter-round"
+            className="otter-round breathing-otter"
             decoding="async"
-            style={{
-              width: 140, height: 140, borderRadius: '50%',
-              position: 'absolute', top: '50%', left: '50%',
-              transform: `translate(-50%, -50%) scale(${otterScale})`,
-              transition: 'transform 4s ease-in-out',
-              boxShadow: '0 0 40px rgba(255,229,180,0.6)',
-            }}
+            style={{ transform: `translate(-50%, -50%) scale(${otterScale})` }}
           />
         </div>
 
-        <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-dark)', marginBottom: 8 }}>
-          {remaining > 0 ? PHASE_LABELS[phase] : '完成 ✨'}
+        <div className="breathing-phase">
+          {done ? '完成 ✨' : PHASE_LABELS[phase]}
         </div>
-        <div style={{ fontSize: 48, fontWeight: 700, color: 'var(--accent-warm)', marginBottom: 8, fontVariantNumeric: 'tabular-nums' }}>
-          {remaining > 0 ? phaseCount : '0'}
+        <div className="breathing-count">
+          {done ? '0' : phaseCount}
         </div>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-          {remaining > 0 ? `剩余 ${remaining} 秒` : '感觉有没有轻松一点？'}
+        <div className="breathing-hint">
+          {done ? '感觉有没有轻松一点？' : PHASE_HINTS[phase]}
         </div>
+        {!done && (
+          <div className="breathing-remaining">剩余 {remaining} 秒</div>
+        )}
       </div>
     </div>
   )

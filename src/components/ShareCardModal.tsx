@@ -12,6 +12,7 @@ export function ShareCardModal({ payload, onClose }: ShareCardModalProps) {
   const ref = useRef<HTMLCanvasElement>(null)
   const [ready, setReady] = useState(false)
   const [error, setError] = useState(false)
+  const [cardH, setCardH] = useState(SHARE_CARD_H)
 
   useEffect(() => {
     const c = ref.current
@@ -19,7 +20,7 @@ export function ShareCardModal({ payload, onClose }: ShareCardModalProps) {
     setReady(false)
     setError(false)
     drawShareCard(c, payload)
-      .then(() => setReady(true))
+      .then(h => { setCardH(h); setReady(true) })
       .catch(() => setError(true))
   }, [payload])
 
@@ -33,9 +34,12 @@ export function ShareCardModal({ payload, onClose }: ShareCardModalProps) {
     }
     try {
       const blob: Blob | null = await new Promise(r => c.toBlob(r, 'image/png'))
-      if (blob && nav.share && nav.canShare?.({ files: [new File([blob], 'share.png', { type: 'image/png' })] })) {
-        const file = new File([blob], `念起觉察_${card.word}.png`, { type: 'image/png' })
-        await nav.share({ title: `念起觉察 · ${card.word}`, files: [file] })
+      if (!blob) throw new Error('canvas empty')
+      const file = new File([blob], `念起觉察_${card.word}.png`, { type: 'image/png' })
+      // iOS：title/text 与 files 同传会拆成「一张图 + 一段文字」，只传 files
+      const shareData: ShareData = { files: [file] }
+      if (nav.share && nav.canShare?.(shareData)) {
+        await nav.share(shareData)
         return
       }
     } catch {
@@ -60,7 +64,7 @@ export function ShareCardModal({ payload, onClose }: ShareCardModalProps) {
           分享你的觉察
         </div>
         <p className="modal-subtitle" style={{ marginBottom: 16 }}>
-          生成一张卡片，保存到相册或分享给朋友
+          保存到相册，或分享给朋友
         </p>
         <div style={{
           background: '#FEF9F0', borderRadius: 20, padding: 16, marginBottom: 16,
@@ -77,7 +81,7 @@ export function ShareCardModal({ payload, onClose }: ShareCardModalProps) {
               style={{
                 width: '100%',
                 maxWidth: 300,
-                aspectRatio: `${SHARE_CARD_W} / ${SHARE_CARD_H}`,
+                aspectRatio: `${SHARE_CARD_W} / ${cardH}`,
                 height: 'auto',
                 borderRadius: 16,
                 boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
@@ -88,7 +92,7 @@ export function ShareCardModal({ payload, onClose }: ShareCardModalProps) {
           )}
         </div>
         <button className="btn-save" onClick={handleShare} disabled={!ready || error}>
-          {ready ? '保存到相册' : '生成中…'}
+          {ready ? '保存 / 分享' : '生成中…'}
         </button>
         <button className="btn-share" onClick={onClose}>取消</button>
       </div>
